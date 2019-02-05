@@ -21,10 +21,7 @@ bool load_content() {
   geom.add_buffer(positions, BUFFER_INDEXES::POSITION_BUFFER);
   geom.add_buffer(colours, BUFFER_INDEXES::COLOUR_BUFFER);
 
-  // *********************************
-  // Create mesh object here
-
-  // *********************************
+  m = mesh(geom);
 
   // Load in shaders
   eff.add_shader("shaders/basic.vert", GL_VERTEX_SHADER);
@@ -45,42 +42,27 @@ bool update(float delta_time) {
   // WSAD - movement
   // arrow keys - rotation
   // O decrease scale, P increase scale
-  // Use the mesh functions, I've left two of the IFs as a hint
-  if (glfwGetKey(renderer::get_window(), 'W')) {
+  if (glfwGetKey(renderer::get_window(), 'W'))
     m.get_transform().position -= vec3(0.0f, 0.0f, 5.0f) * delta_time;
-  }
-  // *********************************
-
-
-
-
-
-
-
-
-
-  // *********************************
-  if (glfwGetKey(renderer::get_window(), GLFW_KEY_UP)) {
+  if (glfwGetKey(renderer::get_window(), 'S'))
+    m.get_transform().position -= vec3(0.0f, 0.0f, -5.0f) * delta_time;
+  if (glfwGetKey(renderer::get_window(), 'A'))
+    m.get_transform().position -= vec3(5.0f, 0.0f, 0.0f) * delta_time;
+  if (glfwGetKey(renderer::get_window(), 'D'))
+    m.get_transform().position -= vec3(-5.0f, 0.0f, 0.0f) * delta_time;
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_UP))
     m.get_transform().rotate(vec3(-pi<float>() * delta_time, 0.0f, 0.0f));
-  }
-  // *********************************
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  // *********************************
-  // Update the camera
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_DOWN))
+    m.get_transform().rotate(vec3(pi<float>() * delta_time, 0.0f, 0.0f));
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_LEFT))
+    m.get_transform().rotate(vec3(0.0f, 0.0f, pi<float>() * delta_time));
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_RIGHT))
+    m.get_transform().rotate(vec3(0.0f, 0.0f, -pi<float>() * delta_time));
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_O))
+    m.get_transform().scale *= 1.1f;
+  if (glfwGetKey(renderer::get_window(), GLFW_KEY_P))
+    m.get_transform().scale *= 0.9f;
+  
   cam.update(delta_time);
   return true;
 }
@@ -89,20 +71,14 @@ bool render() {
   // Bind effect
   renderer::bind(eff);
   mat4 M;
-  // *********************************
-  // Get the model transform from the mesh
-
-  // *********************************
+  M = m.get_transform().get_transform_matrix();
   // Create MVP matrix
   auto V = cam.get_view();
   auto P = cam.get_projection();
   auto MVP = P * V * M;
   // Set MVP matrix uniform
   glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
-  // *********************************
-  // Render the mesh here
-
-  // *********************************
+  renderer::render(m);
   return true;
 }
 

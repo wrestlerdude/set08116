@@ -12,31 +12,53 @@ float theta = 0.0f;
 float rho = 0.0f;
 
 bool load_content() {
-  // Create cube data - twelve triangles triangles
+  // Create cube data - twelve triangles
   // Positions
   vector<vec3> positions{
-      // *********************************
-      // Add the position data for triangles here, (6 verts per side)
-      // Front
-
-
-      // Back
-
-
-      // Right
-
-
-      // Left
-
-
-      // Top
-
-
-      // Bottom
-
-
-      // *********************************
+    //Front
+    vec3(0, 0, 0),
+    vec3(2, 0, 0),
+    vec3(0, 2, 0),
+    vec3(0, 2, 0),
+    vec3(2, 0, 0),
+    vec3(2, 2, 0),
+    //Right
+    vec3(2, 0, 0),
+    vec3(2, 0, -2),
+    vec3(2, 2, 0),
+    vec3(2, 2, 0),
+    vec3(2, 0, -2),
+    vec3(2, 2, -2),
+    // Left
+    vec3(0, 0, 0),
+    vec3(0, 2, 0),
+    vec3(0, 2, -2),
+    vec3(0, 2, -2),
+    vec3(0, 0, -2),
+    vec3(0, 0, 0),
+    //Top
+    vec3(0, 2, 0),
+    vec3(2, 2, 0),
+    vec3(0, 2, -2),
+    vec3(0, 2, -2),
+    vec3(2, 2, 0),
+    vec3(2, 2, -2),
+    //Bottom
+    vec3(0, 0, 0),
+    vec3(0, 0, -2),
+    vec3(2, 0, 0),
+    vec3(2, 0, 0),
+    vec3(0, 0, -2),
+    vec3(2, 0, -2),
+    //Back
+    vec3(0, 0, -2),
+    vec3(0, 2, -2),
+    vec3(2, 0, -2),
+    vec3(2, 0, -2),
+    vec3(0, 2, -2),
+    vec3(2, 2, -2)
   };
+
   // Colours
   vector<vec4> colours;
   for (auto i = 0; i < positions.size(); ++i) {
@@ -100,6 +122,7 @@ void main() {
   application.set_load_content(load_content);
   application.set_update(update);
   application.set_render(render);
+  glDisable(GL_DEPTH_TEST);
   // Run application
   application.run();
 }
