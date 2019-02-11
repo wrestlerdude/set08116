@@ -92,14 +92,10 @@ bool render() {
   // Set MVP matrix uniform
   glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
 
-  // *********************************
-  // Bind texture to renderer
+  renderer::bind(tex, 0);
+  
+  glUniform1i(eff.get_uniform_location("tex"), 0);
 
-  // Set the texture value for the shader here
-
-  // *********************************
-
-  // Render the mesh
   renderer::render(m);
 
   return true;

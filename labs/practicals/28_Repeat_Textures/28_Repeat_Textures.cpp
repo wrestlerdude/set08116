@@ -14,39 +14,32 @@ texture tex;
 bool load_content() {
   // Construct geometry object
   geometry geom;
+  geom.set_type(GL_TRIANGLE_STRIP);
   // Create triangle data
   // Positions
-  vector<vec3> positions{vec3(0.0f, 1.0f, 0.0f), vec3(-1.0f, -1.0f, 0.0f), vec3(1.0f, -1.0f, 0.0f)};
-  // *********************************
-  // Define texture coordinates for triangle
-
-  // *********************************
+  vector<vec3> positions{ vec3(-1.0f, -1.0f, 0.0f), vec3(1.0f, -1.0f, 0.0f), vec3(-1.0f, 1.0f, 0.0f),
+                         vec3(1.0f, 1.0f, 0.0f) };
+  vector<vec2> tex_coords{ vec2(2, 2), vec2(-1, 2), vec2(-1, -1), vec2(2, -1)};
   // Add to the geometry
   geom.add_buffer(positions, BUFFER_INDEXES::POSITION_BUFFER);
-  // *********************************
-  // Add texture coordinate buffer to geometry
-
-  // *********************************
+  geom.add_buffer(tex_coords, BUFFER_INDEXES::TEXTURE_COORDS_0);
 
   // Create mesh object
   m = mesh(geom);
 
-  // Load in texture shaders, !Note that are pulling in shader file from previous project!
+  // Load in texture shaders here
   eff.add_shader("27_Texturing_Shader/simple_texture.vert", GL_VERTEX_SHADER);
   eff.add_shader("27_Texturing_Shader/simple_texture.frag", GL_FRAGMENT_SHADER);
-
-  // *********************************
-  // Build effect
+  eff.build();
 
   // Load texture "textures/sign.jpg"
-
-  // *********************************
+  tex = texture("textures/sign.jpg");
 
   // Set camera properties
-  cam.set_position(vec3(2.0f, 2.0f, 2.0f));
+  cam.set_position(vec3(10.0f, 10.0f, 10.0f));
   cam.set_target(vec3(0.0f, 0.0f, 0.0f));
   auto aspect = static_cast<float>(renderer::get_screen_width()) / static_cast<float>(renderer::get_screen_height());
-  cam.set_projection(quarter_pi<float>(), aspect, 1.0f, 1000.0f);
+  cam.set_projection(quarter_pi<float>(), aspect, 2.414f, 1000.0f);
 
   return true;
 }
@@ -67,17 +60,12 @@ bool render() {
   auto MVP = P * V * M;
   // Set MVP matrix uniform
   glUniformMatrix4fv(eff.get_uniform_location("MVP"), // Location of uniform
-                     1,                               // Number of values - 1 mat4
-                     GL_FALSE,                        // Transpose the matrix?
-                     value_ptr(MVP));                 // Pointer to matrix data
+    1,                               // Number of values - 1 mat4
+    GL_FALSE,                        // Transpose the matrix?
+    value_ptr(MVP));                 // Pointer to matrix data
 
-  // *********************************
-  // Bind texture to renderer
-
-  // Set the texture value for the shader here
-
-  // *********************************
-
+  renderer::bind(tex, 0);
+  glUniform1i(eff.get_uniform_location("tex"), 0);
   // Render the mesh
   renderer::render(m);
 
@@ -86,7 +74,7 @@ bool render() {
 
 void main() {
   // Create application
-  app application("28_Repeat_Textures");
+  app application("27_Texturing_Shader");
   // Set load content, update and render methods
   application.set_load_content(load_content);
   application.set_update(update);

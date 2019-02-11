@@ -69,19 +69,15 @@ bool render() {
                      1,                               // Number of values - 1 mat4
                      GL_FALSE,                        // Transpose the matrix?
                      value_ptr(MVP));                 // Pointer to matrix data
+  glUniform1f(eff.get_uniform_location("factor"), dissolve_factor);
 
-  // *********************************
-  // Set the dissolve_factor uniform value
+  renderer::bind(tex, 0);
+  renderer::bind(dissolve, 1);
 
-  // Bind the two textures - use different index for each
+  glUniform1i(eff.get_uniform_location("tex"), 0);
+  glUniform1i(eff.get_uniform_location("dissolve"), 1);
 
-
-  // Set the uniform values for textures - use correct index
-
-
-  // *********************************
-
-  // Set UV_scroll uniform, adds cool movent (Protip: This is a super easy way to do fire effects;))
+  // Set UV_scroll uniform, adds cool movement (Protip: This is a super easy way to do fire effects;))
   glUniform2fv(eff.get_uniform_location("UV_SCROLL"), 1, value_ptr(uv_scroll));
   // Render the mesh
   renderer::render(m);

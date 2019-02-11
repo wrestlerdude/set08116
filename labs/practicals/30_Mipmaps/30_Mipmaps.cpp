@@ -28,11 +28,8 @@ bool load_content() {
 
   // Create three mesh objects - reuse geometry
   for (auto &m : meshes) {
-    // *********************************
-
-    // Scale each mesh by 10
-
-    // *********************************
+    m = mesh(geom);
+    m.get_transform().scale = vec3(10, 10, 10);
   }
 
   // Set mesh positions - remember scale
@@ -91,14 +88,9 @@ bool render() {
     // Set MVP matrix uniform
     glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
 
-    // *********************************
-    // Bind correct texture to renderer
-
-    // Set the texture value for the shader here
-
-    // Render the mesh
-
-    // *********************************
+    renderer::bind(texs[i], i);
+    glUniform1i(eff.get_uniform_location("tex"), i);
+    renderer::render(meshes[i]);
   }
 
   return true;
