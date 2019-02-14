@@ -11,13 +11,9 @@ mesh m;
 target_camera cam;
 
 bool load_content() {
-  // *********************************
-  // Load in model, models/teapot.obj
-
-  // Load in texture, textures/checker.png
-
-  // *********************************
-
+	m = mesh(geometry("models/teapot.obj"));
+	tex = texture("textures/checker.png");
+  
   // Load in shaders
   eff.add_shader("27_Texturing_Shader/simple_texture.vert", GL_VERTEX_SHADER);
   eff.add_shader("27_Texturing_Shader/simple_texture.frag", GL_FRAGMENT_SHADER);
@@ -49,13 +45,8 @@ bool render() {
   // Set MVP matrix uniform
   glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
 
-  // *********************************
-  // Bind texture to renderer
-
-  // Set the texture value for the shader here
-
-  // *********************************
-
+	renderer::bind(tex, 0);
+	glUniform1i(eff.get_uniform_location("tex"), 0);
   // Render mesh
   renderer::render(m);
 

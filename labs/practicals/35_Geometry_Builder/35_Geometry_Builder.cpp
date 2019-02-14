@@ -11,49 +11,32 @@ texture tex;
 target_camera cam;
 
 bool load_content() {
-  // Create plane mesh
+  // Create meshes
   meshes["plane"] = mesh(geometry_builder::create_plane());
+	meshes["box"] = mesh(geometry_builder::create_box());
+	meshes["tetra"] = mesh(geometry_builder::create_tetrahedron());
+	meshes["pyramid"] = mesh(geometry_builder::create_pyramid());
+	meshes["disk"] = mesh(geometry_builder::create_disk(20));
+	meshes["cylinder"] = mesh(geometry_builder::create_cylinder(20, 20));
+	meshes["sphere"] = mesh(geometry_builder::create_sphere(20, 20));
+	meshes["torus"] = mesh(geometry_builder::create_torus(20, 20, 1, 5));
+	// Set mesh transforms
+	meshes["box"].get_transform().scale = vec3(5, 5, 5);
+	meshes["box"].get_transform().position = vec3(-10, 2.5f, -30);
+	meshes["tetra"].get_transform().scale = vec3(4, 4, 4);
+	meshes["tetra"].get_transform().position = vec3(-30, 10, -10);
+	meshes["pyramid"].get_transform().scale = vec3(5, 5, 5);
+	meshes["pyramid"].get_transform().position = vec3(-10, 7.5f, -30);
+	meshes["disk"].get_transform().scale = vec3(3, 1, 3);
+	meshes["disk"].get_transform().position = vec3(-10, 11.5f, -30);
+  meshes["disk"].get_transform().rotate(vec3(pi<float>() / 2.0f, 0.0f, 0.0f));
+	meshes["cylinder"].get_transform().scale = vec3(5, 5, 5);
+	meshes["cylinder"].get_transform().position = vec3(-25, 2.5f, -25);
+	meshes["sphere"].get_transform().scale = vec3(2.5f, 2.5f, 2.5f);
+	meshes["sphere"].get_transform().position = vec3(-25, 10, -25);
+	meshes["torus"].get_transform().position = vec3(-25, 10, -25);
+	meshes["torus"].get_transform().rotate(vec3(pi<float>() / 2.0f, 0.0f, 0.0f));
 
-  // *********************************
-  // box
-
-  // Tetrahedron
-
-  // Pyramid
-
-  // Disk
-
-  // Cylinder
-
-  // Sphere
-
-  // Torus
-
-
-  // Set the transforms for your meshes here
-  // 5x scale, move(-10.0f, 2.5f, -30.0f)
-
-
-  // 4x scale, move(-30.0f, 10.0f, -10.0f)
-
-
-  // 5x scale, move(-10.0f, 7.5f, -30.0f)
-
-
-  // scale(3.0f, 1.0f, 3.0f), move(-10.0f, 11.5f, -30.0f), 180 rotate X axis
-
-
-
-  // 5x scale, move(-25.0f, 2.5f, -25.0f)
-
-
-  // 2.5x scale, move(-25.0f, 10.0f, -25.0f)
-
-
-  // 180 rotate X axis, move(-25.0f, 10.0f, -25.0f)
-
-
-  // *********************************
 
   // Load texture
   tex = texture("textures/checker.png");
@@ -92,13 +75,10 @@ bool render() {
     // Set MVP matrix uniform
     glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
 
-    // *********************************
-    // Bind texture to renderer
-
-    // Set the texture value for the shader here
-
-    // *********************************
-    // Render mesh
+		renderer::bind(tex, 0);
+		glUniform1i(eff.get_uniform_location("tex"), 0);
+    
+		// Render mesh
     renderer::render(m);
   }
 

@@ -15,19 +15,13 @@ target_camera cam;
 bool load_content() {
   // Create plane mesh
   plane_mesh = mesh(geometry_builder::create_plane());
-
-  // *********************************
+	plane_mesh.get_transform().position -= vec3(0, 2, 0);
   // Create Three Identical Box Meshes
-
-
-
-  // Move Box One to (0,1,0)
-
-  // Move Box Two to (0,0,1)
-
-  // Move Box Three to (0,1,0)
-
-  // *********************************
+	for (auto &m : meshes)
+		m = mesh(geometry_builder::create_box());
+	meshes[0].get_transform().position = vec3(1, 0, 0);
+	meshes[1].get_transform().position = vec3(0, 0, 1);
+	meshes[2].get_transform().position = vec3(0, 1, 0);
 
   // Load texture
   plane_tex = texture("textures/snow.jpg");
@@ -50,14 +44,9 @@ bool load_content() {
 }
 
 bool update(float delta_time) {
-  // *********************************
-  // rotate Box one on Y axis by delta_time
-
-  // rotate Box Two on Z axis by delta_time
-
-  // rotate Box Three on Y axis by delta_time
-
-  // *********************************
+	meshes[0].get_transform().rotate(vec3(0, delta_time, 0));
+	meshes[1].get_transform().rotate(vec3(0, 0, delta_time));
+	meshes[2].get_transform().rotate(vec3(0, delta_time, 0));
   // Update the camera
   cam.update(delta_time);
   return true;
@@ -76,11 +65,7 @@ bool render() {
 
   // Render meshes
   for (size_t i = 0; i < meshes.size(); i++) {
-    // *********************************
-    // SET M to be the usual mesh  transform matrix
-
-    // *********************************
-
+		auto M = meshes[i].get_transform().get_transform_matrix();
     // Apply the heirarchy chain
     for (size_t j = i; j > 0; j--) {
       M = meshes[j - 1].get_transform().get_transform_matrix() * M;
