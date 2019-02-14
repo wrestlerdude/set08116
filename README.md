@@ -13,8 +13,6 @@ Update the submodules:
 git submodule update --init --recursive
 ```
 
-3. From there, you must build the labs with CMake.
-
 ---
 
 ### Copyright (C) 2016  Edinburgh Napier University
