@@ -4,9 +4,10 @@
 ![](https://ci.appveyor.com/api/projects/status/58q70s02aettjai5?svg=true)
 
 ---
+Forked for Computer Graphics.
+Allan is one of my author aliases.
 
-1. Clone or fork this repo
-0. Once you have it locally, update the submodules:
+Update the submodules:
 
 ```bash 
 git submodule update --init --recursive
