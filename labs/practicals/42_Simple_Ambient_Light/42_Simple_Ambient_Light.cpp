@@ -9,6 +9,7 @@ map<string, mesh> meshes;
 effect eff;
 texture tex;
 target_camera cam;
+#define NapierRed 0.765f, 0.082f, 0.196f
 
 bool load_content() {
   // Create plane mesh
@@ -86,12 +87,12 @@ bool render() {
     // Set MVP matrix uniform
     glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
 
-    // *********************************
     // Set material colour - all objects red
+    glUniform4f(eff.get_uniform_location("material_colour"), NapierRed, 1.0f);
 
     // Set ambient intensity - (0.3, 0.3, 0.3, 1.0)
+    glUniform4f(eff.get_uniform_location("ambient_intensity"), 0.3f, 0.3f, 0.3f, 1.0f);
 
-    // *********************************
     // Render mesh
     renderer::render(m);
   }

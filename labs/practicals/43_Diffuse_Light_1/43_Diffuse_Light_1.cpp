@@ -89,16 +89,14 @@ bool render() {
     // Set MVP matrix uniform
     glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
 
-    // *********************************
     // Set material colour- all objects red
-
+    glUniform4f(eff.get_uniform_location("material_colour"), 1.0f, 0.0f, 0.0f, 1.0f);
     // Set light colour- (1.0, 1.0, 1.0, 1.0)
-
+    glUniform4f(eff.get_uniform_location("light_colour"), 1.0f, 1.0f, 1.0f, 1.0f);
     // Set light direction - (1.0, 1.0, -1.0)
-
+    glUniform3f(eff.get_uniform_location("light_dir"), 1.0f, 1.0f, -1.0f);
     // Render mesh
-
-    // *********************************
+    renderer::render(m);
   }
 
   return true;
