@@ -56,6 +56,26 @@ bool load_content() {
   return true;
 }
 
+void screen_pos_to_world_ray(double mouse_x, double mouse_y, GLuint screen_width, GLuint screen_height, mat4 view, mat4 proj, vec3& origin, vec3& direction)
+{
+  //xx and yy now in range (-1, 1)
+  double xx = ((2 * mouse_x) / screen_width) - 1;
+  double yy = ((2 * mouse_y) / screen_height) - 1;
+  //Homogeneous coordinates for screen plane
+  vec4 ray_start_screen = vec4(xx, yy, -1, 1);
+  vec4 ray_end_screen = vec4(xx, yy, 0, 1);
+  //Transform matrix from screen space to world
+  mat4 inverse_matrix = inverse(proj * view);
+  vec4 ray_start_world = inverse_matrix * ray_start_screen;
+  vec4 ray_end_world = inverse_matrix * ray_end_screen;
+  //Convert from Homogeneous coordinates
+  ray_start_world /= ray_start_world.w;
+  ray_end_world /= ray_end_world.w;
+  //direction and origin returned to caller
+  direction = normalize(ray_end_world - ray_start_world);
+  origin = ray_start_world;
+}
+
 bool update(float delta_time) {
   if (glfwGetKey(renderer::get_window(), '1'))
     cam.set_position(vec3(50, 10, 50));
@@ -66,31 +86,24 @@ bool update(float delta_time) {
   if (glfwGetKey(renderer::get_window(), '4'))
     cam.set_position(vec3(50, 10, -50));
 
-  // *********************************
-  // Update the camera
-
+  cam.update(delta_time);
+  
   // If mouse button pressed get ray and check for intersection
+  double cursor_x, cursor_y;
+  glfwGetCursorPos(renderer::get_window(), &cursor_x, &cursor_y);
+  vec3 origin, direction;
 
-    // Create two doubles to store mouse Position X and Y
-
-
-    // Get the mouse position from glfw, store in to the doubles.
-
-    // Crate two vec3 to store Origin and direction of the ray
-
-
-    // *********************************
-    // Convert mouse position to ray
-    screen_pos_to_world_ray(mouse_X, mouse_Y, renderer::get_screen_width(), renderer::get_screen_height(),
+  // Convert mouse position to ray
+  screen_pos_to_world_ray(cursor_x, cursor_y, renderer::get_screen_width(), renderer::get_screen_height(),
                             cam.get_view(), cam.get_projection(), origin, direction);
-    // Check all the mehes for intersection
-    for (auto &m : meshes) {
-      float distance = 0.0f;
-      if (test_ray_oobb(origin, direction, m.second.get_minimal(), m.second.get_maximal(),
-                        m.second.get_transform().get_transform_matrix(), distance))
-        cout << m.first << " " << distance << endl;
-    }
-  }//endif
+  // Check all the mehes for intersection
+  for (auto &m : meshes) {
+    float distance = 0.0f;
+    if (test_ray_oobb(origin, direction, m.second.get_minimal(), m.second.get_maximal(),
+        m.second.get_transform().get_transform_matrix(), distance)) {
+      cout << m.first << " " << distance << endl;
+    }//endif
+  }
 
   return true;
 }

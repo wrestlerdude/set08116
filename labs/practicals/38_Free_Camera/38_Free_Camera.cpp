@@ -13,12 +13,9 @@ double cursor_x = 0.0;
 double cursor_y = 0.0;
 
 bool initialise() {
-  // *********************************
-  // Set input mode - hide the cursor
+  glfwSetInputMode(renderer::get_window(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwGetCursorPos(renderer::get_window(), &cursor_x, &cursor_y);
 
-  // Capture initial mouse position
-
-  // *********************************
   return true;
 }
 
@@ -77,43 +74,38 @@ bool update(float delta_time) {
        (static_cast<float>(renderer::get_screen_height()) / static_cast<float>(renderer::get_screen_width()))) /
       static_cast<float>(renderer::get_screen_height());
 
-  double current_x;
-  double current_y;
-  // *********************************
-  // Get the current cursor position
-
   // Calculate delta of cursor positions from last frame
-
+  double new_x, new_y;
+  glfwGetCursorPos(renderer::get_window(), &new_x, &new_y);
+  double delta_x = new_x - cursor_x;
+  double delta_y = new_y - cursor_y;
 
   // Multiply deltas by ratios - gets actual change in orientation
-
+  delta_x *= ratio_width;
+  delta_y *= ratio_height;
 
   // Rotate cameras by delta
-  // delta_y - x-axis rotation
-  // delta_x - y-axis rotation
-
+  cam.rotate(delta_x, -delta_y);
+  
   // Use keyboard to move the camera - WSAD
-
-
-
-
-
-
-
-
-
-
-
-
+  vec3 movement = vec3(0, 0, 0);
+  if (glfwGetKey(renderer::get_window(), 'W'))
+    movement.z += 0.1; 
+  if (glfwGetKey(renderer::get_window(), 'S'))
+    movement.z -= 0.1;
+  if (glfwGetKey(renderer::get_window(), 'A'))
+    movement.x -= 0.1;
+  if (glfwGetKey(renderer::get_window(), 'D'))
+    movement.x += 0.1;
 
   // Move camera
-
+  cam.move(movement);
   // Update the camera
-
+  cam.update(delta_time);
   // Update cursor pos
+  cursor_x = new_x;
+  cursor_y = new_y;
 
-
-  // *********************************
   return true;
 }
 
