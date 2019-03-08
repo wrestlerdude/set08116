@@ -52,6 +52,7 @@ bool load_content() {
   //Apply textures with Anisotropic filtering and generate mipmaps
   //Sandstone texture
   textures[0] = texture("Coursework/purple-stone.jpg", true, true);
+  //use different shaders!
   textures[1] = texture("Coursework/light-grey.png");
 
   // Set camera properties

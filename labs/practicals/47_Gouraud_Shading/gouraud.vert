@@ -43,36 +43,28 @@ layout(location = 1) out vec4 secondary;
 layout(location = 2) out vec2 tex_coord_out;
 
 void main() {
-  // *********************************
   // Calculate position
-
+  gl_Position = MVP * vec4(position, 1);
   // Calculate ambient component
-
+  vec4 ambient = mat.diffuse_reflection * light.ambient_intensity;
   // Transform the normal
-
-  // Calculate k
-
+  vec3 transformed_normal = N * normal;
   // Calculate diffuse
-
+  vec4 diffuse = max(dot(transformed_normal, light.light_dir), 0) * (mat.diffuse_reflection * light.light_colour);
   // Calculate world position of vertex
-
+  vec4 world_pos = M * vec4(position, 1);
   // Calculate view direction
-
+  vec3 view_dir = normalize(eye_pos - world_pos.xyz);
   // Calculate half vector between view_dir and light_dir
-
+  vec3 half_vector = normalize(light.light_dir + view_dir);
   // Calculate specular component
-  // Calculate k
-
-  // Calculate specular
-
+  vec4 specular = pow(max(dot(transformed_normal, half_vector), 0.0f), mat.shininess) * (mat.specular_reflection * light.light_colour);
   // Set primary
-
+  primary = mat.emissive + ambient + diffuse;
   // Set secondary
-
+  secondary = specular;
   // Ensure primary and secondary alphas are 1
-
-
-  // Pass through texture coordinate
-
-  // *********************************
+  primary.w = 1;
+  secondary.w = 1;
+  tex_coord_out = tex_coord_in;
 }

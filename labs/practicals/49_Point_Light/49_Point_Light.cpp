@@ -41,63 +41,47 @@ bool load_content() {
   meshes["torus"].get_transform().translate(vec3(-25.0f, 10.0f, -25.0f));
   meshes["torus"].get_transform().rotate(vec3(half_pi<float>(), 0.0f, 0.0f));
 
-  // *********************************
   // Set materials
   // - all emissive is black
   // - all specular is white
   // - all shininess is 25
-  // Red box
-
-
-
-
+ // Red box
+  meshes["box"].get_material().set_diffuse(vec4(1, 0, 0, 1));
   // Green tetra
-
-
-
-
+  meshes["tetra"].get_material().set_diffuse(vec4(0, 1, 0, 1));
   // Blue pyramid
-
-
-
-
+  meshes["pyramid"].get_material().set_diffuse(vec4(0, 0, 1, 1));
   // Yellow disk
-
-
-
-
+  meshes["disk"].get_material().set_diffuse(vec4(1, 1, 0, 1));
   // Magenta cylinder
-
-
-
-
+  meshes["cylinder"].get_material().set_diffuse(vec4(1, 0, 1, 1));
   // Cyan sphere
-
-
-
-
+  meshes["sphere"].get_material().set_diffuse(vec4(0, 1, 1, 1));
   // White torus
+  meshes["torus"].get_material().set_diffuse(vec4(1, 1, 1, 1));
 
-
-
-
-  // *********************************
+  for (auto &e : meshes)
+  {
+    material mat = e.second.get_material();
+    mat.set_emissive(vec4(0, 0, 0, 1));
+    mat.set_specular(vec4(1, 1, 1, 1));
+    mat.set_shininess(25);
+  }
 
   // Load texture
   tex = texture("textures/checker.png");
-  // *********************************
   // Set lighting values, Position (-25, 10, -10)
-
+  light.set_position(vec3(-25, 10, -10));
   // Light colour white
-
+  light.set_light_colour(vec4(1, 1, 1, 1));
   // Set range to 20
+  light.set_range(20);
 
   // Load in shaders
-
-
+  eff.add_shader("49_Point_Light/point.vert", GL_VERTEX_SHADER);
+  eff.add_shader("49_Point_Light/point.frag", GL_FRAGMENT_SHADER);
   // Build effect
-
-  // *********************************
+  eff.build();
 
   // Set camera properties
   cam.set_position(vec3(50.0f, 10.0f, 50.0f));
@@ -109,40 +93,21 @@ bool load_content() {
 bool update(float delta_time) {
   // Range of the point light
   static float range = 20.0f;
-  // *********************************
-
-
-
-
-
-
-
-
-
-
-
 
   // WSAD to move point light
-
-
-
-
-
-
-
-
-
-
-
-
+  if (glfwGetKey(renderer::get_window(), 'W'))
+    light.set_position(light.get_position() - vec3(0, 0, 1));
+  if (glfwGetKey(renderer::get_window(), 'S'))
+    light.set_position(light.get_position() + vec3(0, 0, 1));
+  if (glfwGetKey(renderer::get_window(), 'A'))
+    light.set_position(light.get_position() - vec3(1, 0, 0));
+  if (glfwGetKey(renderer::get_window(), 'D'))
+    light.set_position(light.get_position() + vec3(1, 0, 0));
   // O and P to change range
-
-
-
-
-
-
-  // *********************************
+  if (glfwGetKey(renderer::get_window(), 'O'))
+    range--;
+  if (glfwGetKey(renderer::get_window(), 'P'))
+    range++;
 
   // Set range
   light.set_range(range);
@@ -172,24 +137,22 @@ bool render() {
                        GL_FALSE,                        // Transpose the matrix?
                        value_ptr(MVP));                 // Pointer to matrix data
 
-    // *********************************
     // Set M matrix uniform
-
+    glUniformMatrix4fv(eff.get_uniform_location("M"), 1, GL_FALSE, value_ptr(M));
     // Set N matrix uniform - remember - 3x3 matrix
-
+    glUniformMatrix3fv(eff.get_uniform_location("N"), 1, GL_FALSE, value_ptr(m.get_transform().get_normal_matrix()));
     // Bind material
-
+    renderer::bind(m.get_material(), "mat");
     // Bind light
-
+    renderer::bind(light, "point");
     // Bind texture
-
+    renderer::bind(tex, 0);
     // Set tex uniform
-
-    // Set eye position- Get this from active camera
-
+    glUniform1i(eff.get_uniform_location("tex"), 0);
+    // Set eye position - Get this from active camera
+    glUniform3fv(eff.get_uniform_location("eye_pos"), 1, value_ptr(cam.get_position()));
     // Render mesh
-
-    // *********************************
+    renderer::render(m);
   }
 
   return true;
