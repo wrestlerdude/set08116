@@ -1,3 +1,4 @@
+#include <string>
 #include <glm\glm.hpp>
 #include <graphics_framework.h>
 
@@ -6,7 +7,7 @@ using namespace graphics_framework;
 using namespace glm;
 
 map<string, mesh> meshes;
-texture tex;
+array<texture, 2> textures;
 effect eff;
 free_camera cam;
 double run_time = 0.0;
@@ -25,7 +26,21 @@ bool load_content() {
   meshes["magic_stone"] = mesh(geometry_builder::create_box());
   meshes["pedastel"] = mesh(geometry("Coursework/pedastel.obj"));
   meshes["pedastel"].get_transform().scale = vec3(6, 6, 6);
+
   meshes["pedastel"].get_transform().position = vec3(-1, -20, -4.5);
+  meshes["pedastel2"] = mesh(meshes["pedastel"]);
+  meshes["pedastel3"] = mesh(meshes["pedastel"]);
+  meshes["pedastel4"] = mesh(meshes["pedastel"]);
+
+  //Space out pedastels
+  int seperation = 0;
+  for (auto &e : meshes) {
+    if (e.first.find("pedastel") != string::npos)
+    {
+      e.second.get_transform().position -= vec3(seperation, 0, 0);
+      seperation += 24;
+    }
+  }
 
   // Load in shaders
   eff.add_shader("Coursework/interp.vert", GL_VERTEX_SHADER);
@@ -34,20 +49,24 @@ bool load_content() {
   // Build effect
   eff.build();
 
-  tex = texture("textures/checker.png");
+  //Apply textures with Anisotropic filtering and generate mipmaps
+  //Sandstone texture
+  textures[0] = texture("Coursework/purple-stone.jpg", true, true);
+  textures[1] = texture("Coursework/light-grey.png");
 
   // Set camera properties
   cam.set_position(vec3(0.0f, 5.0f, 15.0f));
   cam.set_target(vec3(0.0f, 0.0f, 0.0f));
-  cam.set_projection(quarter_pi<float>(), renderer::get_screen_aspect(), 0.1f, 1000.0f);
+  // ~ around 70 degrees fov
+  cam.set_projection(1.222f, renderer::get_screen_aspect(), 0.1f, 1000.0f);
   return true;
 }
 
 bool update(float delta_time) {
   // The ratio of pixels to rotation - remember the fov
-  static double ratio_width = quarter_pi<float>() / static_cast<float>(renderer::get_screen_width());
+  static double ratio_width = 1.222f / static_cast<float>(renderer::get_screen_width());
   static double ratio_height =
-    (quarter_pi<float>() *
+    (1.222f *
     (static_cast<float>(renderer::get_screen_height()) / static_cast<float>(renderer::get_screen_width()))) /
     static_cast<float>(renderer::get_screen_height());
 
@@ -84,6 +103,7 @@ bool update(float delta_time) {
   cursor_y = new_y;
 
   run_time += delta_time;
+  //Manipulate transform of the magic_stone
   float factor = (1.0 + cosf(run_time)) * 2;
   meshes["magic_stone"].get_transform().scale = vec3(pow(factor, 1.5), sqrtf(factor), 2);
   meshes["magic_stone"].get_transform().rotate(vec3(quarter_pi<float>(), quarter_pi<float>(), 0.0f) * delta_time);
@@ -104,6 +124,14 @@ bool render() {
     auto MVP = P * V * M;
     // Set MVP matrix uniform
     glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
+
+    //Bind texture to renderer and pass to shader
+    if (e.first == "magic_stone")
+      renderer::bind(textures[0], 0);
+    else
+      renderer::bind(textures[1], 0);
+    
+    glUniform1i(eff.get_uniform_location("tex"), 0);
 
     // Render mesh
     renderer::render(m);
