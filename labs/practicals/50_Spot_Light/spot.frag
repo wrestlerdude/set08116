@@ -59,7 +59,7 @@ void main() {
   vec4 texture_colour = texture(tex, tex_coord);
   vec4 primary = mat.emissive + diffuse;
   primary.w = 1;
-  specular.w =1;
+  specular.w = 1;
 
   colour = (primary * texture_colour) + specular;
 }

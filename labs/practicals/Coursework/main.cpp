@@ -2,14 +2,17 @@
 #include <glm\glm.hpp>
 #include <graphics_framework.h>
 
+
 using namespace std;
 using namespace graphics_framework;
 using namespace glm;
 
 map<string, mesh> meshes;
 array<texture, 2> textures;
+array<spot_light, 4> spots;
 effect eff;
 free_camera cam;
+spot_light spot;
 double run_time = 0.0;
 double cursor_x = 0.0;
 double cursor_y = 0.0;
@@ -24,22 +27,31 @@ bool initialise() {
 bool load_content() {
 
   meshes["magic_stone"] = mesh(geometry_builder::create_box());
-  meshes["pedastel"] = mesh(geometry("Coursework/pedastel.obj"));
-  meshes["pedastel"].get_transform().scale = vec3(6, 6, 6);
+  meshes["pedestal"] = mesh(geometry("Coursework/pedestal.obj"));
 
-  meshes["pedastel"].get_transform().position = vec3(-1, -20, -4.5);
-  meshes["pedastel2"] = mesh(meshes["pedastel"]);
-  meshes["pedastel3"] = mesh(meshes["pedastel"]);
-  meshes["pedastel4"] = mesh(meshes["pedastel"]);
+  meshes["magic_stone"].get_material().set_shininess(0);
+  meshes["pedestal"].get_material().set_shininess(50);
 
-  //Space out pedastels
+  meshes["pedestal"].get_transform().position = vec3(0, -5, 0);
+  meshes["pedestal"].get_transform().scale = vec3(0.3, 0.3, 0.3);
+  meshes["pedestal"].get_material().set_shininess(50);
+
+  meshes["pedestal2"] = mesh(meshes["pedestal"]);
+  meshes["pedestal3"] = mesh(meshes["pedestal"]);
+  meshes["pedestal4"] = mesh(meshes["pedestal"]);
+
   int seperation = 0;
   for (auto &e : meshes) {
-    if (e.first.find("pedastel") != string::npos)
-    {
+    if (e.first.find("pedestal") != string::npos) {
       e.second.get_transform().position -= vec3(seperation, 0, 0);
       seperation += 24;
     }
+  }
+
+  for (auto &e : meshes) {
+    material mat = e.second.get_material();
+    mat.set_emissive(vec4(0, 0, 0, 1));
+    mat.set_specular(vec4(1, 1, 1, 1));
   }
 
   // Load in shaders
@@ -50,13 +62,23 @@ bool load_content() {
   eff.build();
 
   //Apply textures with Anisotropic filtering and generate mipmaps
-  //Sandstone texture
-  textures[0] = texture("Coursework/purple-stone.jpg", true, true);
-  //use different shaders!
-  textures[1] = texture("Coursework/light-grey.png");
+  //Gem texture
+  textures[0] = texture("Coursework/wood-squares.jpg", true, true);
+  //Marble texture
+  textures[1] = texture("Coursework/marble.jpg", true, true);
+
+  seperation = 0;
+  for (size_t i = 0; i < 4; i++) {
+    spots[i].set_position(vec3(seperation, 0, 0));
+    spots[i].set_light_colour(vec4(1, 1, 1, 1));
+    spots[i].set_direction(vec3(0, -1, 0));
+    spots[i].set_range(2);
+    spots[i].set_power(1);
+    seperation -= 24;
+  }
 
   // Set camera properties
-  cam.set_position(vec3(0.0f, 5.0f, 15.0f));
+  cam.set_position(vec3(-30.0f, 5.0f, 15.0f));
   cam.set_target(vec3(0.0f, 0.0f, 0.0f));
   // ~ around 70 degrees fov
   cam.set_projection(1.222f, renderer::get_screen_aspect(), 0.1f, 1000.0f);
@@ -118,6 +140,7 @@ bool render() {
     auto m = e.second;
     // Bind effect
     renderer::bind(eff);
+
     // Create MVP matrix
     auto M = m.get_transform().get_transform_matrix();
     auto V = cam.get_view();
@@ -126,14 +149,18 @@ bool render() {
     // Set MVP matrix uniform
     glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
 
+    bool texture_exists = true;
     //Bind texture to renderer and pass to shader
     if (e.first == "magic_stone")
       renderer::bind(textures[0], 0);
-    else
+    else if (e.first.find("pedestal") != string::npos)
       renderer::bind(textures[1], 0);
-    
-    glUniform1i(eff.get_uniform_location("tex"), 0);
+    else
+      texture_exists = false;
 
+
+    glUniform1i(eff.get_uniform_location("tex"), 0);
+    glUniform1i(eff.get_uniform_location("texture_exists"), texture_exists);
     // Render mesh
     renderer::render(m);
   }
