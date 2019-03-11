@@ -9,10 +9,9 @@ using namespace glm;
 
 map<string, mesh> meshes;
 array<texture, 2> textures;
-array<spot_light, 4> spots;
+vector<spot_light> spots(4);
 effect eff;
 free_camera cam;
-spot_light spot;
 double run_time = 0.0;
 double cursor_x = 0.0;
 double cursor_y = 0.0;
@@ -29,12 +28,11 @@ bool load_content() {
   meshes["magic_stone"] = mesh(geometry_builder::create_box());
   meshes["pedestal"] = mesh(geometry("Coursework/pedestal.obj"));
 
-  meshes["magic_stone"].get_material().set_shininess(0);
+  meshes["magic_stone"].get_material().set_shininess(5);
   meshes["pedestal"].get_material().set_shininess(50);
 
   meshes["pedestal"].get_transform().position = vec3(0, -5, 0);
   meshes["pedestal"].get_transform().scale = vec3(0.3, 0.3, 0.3);
-  meshes["pedestal"].get_material().set_shininess(50);
 
   meshes["pedestal2"] = mesh(meshes["pedestal"]);
   meshes["pedestal3"] = mesh(meshes["pedestal"]);
@@ -138,6 +136,7 @@ bool render() {
   // Render meshes
   for (auto &e : meshes) {
     auto m = e.second;
+
     // Bind effect
     renderer::bind(eff);
 
@@ -146,11 +145,16 @@ bool render() {
     auto V = cam.get_view();
     auto P = cam.get_projection();
     auto MVP = P * V * M;
+
     // Set MVP matrix uniform
     glUniformMatrix4fv(eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
+    // Set Normal matrix uniform - get vertex normal transform
+    glUniformMatrix3fv(eff.get_uniform_location("N"), 1, GL_FALSE, value_ptr(m.get_transform().get_normal_matrix()));
+    // Set M matrix uniform - convert vertices to world space
+    glUniformMatrix4fv(eff.get_uniform_location("M"), 1, GL_FALSE, value_ptr(M));
 
-    bool texture_exists = true;
     //Bind texture to renderer and pass to shader
+    bool texture_exists = true;
     if (e.first == "magic_stone")
       renderer::bind(textures[0], 0);
     else if (e.first.find("pedestal") != string::npos)
@@ -158,9 +162,12 @@ bool render() {
     else
       texture_exists = false;
 
+    renderer::bind(m.get_material(), "mat");
+    renderer::bind(spots, "spots");
 
     glUniform1i(eff.get_uniform_location("tex"), 0);
     glUniform1i(eff.get_uniform_location("texture_exists"), texture_exists);
+    glUniform3fv(eff.get_uniform_location("eye_pos"), 1, value_ptr(cam.get_position()));
     // Render mesh
     renderer::render(m);
   }
