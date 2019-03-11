@@ -74,9 +74,9 @@ bool load_content() {
 
   // Set lighting values
   // ambient intensity (0.3, 0.3, 0.3)
-  light.set_ambient_intensity(vec4(0.3, 0.3, 0.3, 1));
+  light.set_ambient_intensity(vec4(0.15, 0.15, 0.15, 1));
   // Light colour white
-  light.set_ambient_intensity(vec4(1, 1, 1, 1));
+  light.set_light_colour(vec4(1, 1, 1, 1));
   // Light direction (1.0, 1.0, -1.0)
   light.set_direction(vec3(1, 1, -1));
 

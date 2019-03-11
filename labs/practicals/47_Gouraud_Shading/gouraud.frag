@@ -14,6 +14,6 @@ layout(location = 2) in vec2 tex_coord;
 layout(location = 0) out vec4 colour;
 
 void main() {
-  vec4 texture_colour  = texture(tex, tex_coord);
+  vec4 texture_colour = texture(tex, tex_coord);
   colour = (primary * texture_colour) + secondary;
 }

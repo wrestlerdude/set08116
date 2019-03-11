@@ -9,8 +9,8 @@ layout (location = 2) in vec3 normal;
 layout (location = 10) in vec2 tex_coord_in;
 
 layout(location = 0) out vec3 vertex_position;
-layout (location = 1) out vec3 transformed_normal;
-layout (location = 2) out vec2 tex_coord_out;
+layout(location = 1) out vec3 transformed_normal;
+layout(location = 2) out vec2 tex_coord_out;
 
 void main()
 {

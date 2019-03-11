@@ -10,6 +10,7 @@ using namespace glm;
 map<string, mesh> meshes;
 array<texture, 2> textures;
 vector<spot_light> spots(4);
+directional_light sun;
 effect eff;
 free_camera cam;
 double run_time = 0.0;
@@ -28,8 +29,8 @@ bool load_content() {
   meshes["magic_stone"] = mesh(geometry_builder::create_box());
   meshes["pedestal"] = mesh(geometry("Coursework/pedestal.obj"));
 
-  meshes["magic_stone"].get_material().set_shininess(5);
-  meshes["pedestal"].get_material().set_shininess(50);
+  meshes["magic_stone"].get_material().set_shininess(50);
+  meshes["pedestal"].get_material().set_shininess(1000);
 
   meshes["pedestal"].get_transform().position = vec3(0, -5, 0);
   meshes["pedestal"].get_transform().scale = vec3(0.3, 0.3, 0.3);
@@ -52,9 +53,13 @@ bool load_content() {
     mat.set_specular(vec4(1, 1, 1, 1));
   }
 
+  sun.set_ambient_intensity(vec4(0.2, 0.2, 0.2, 1));
+  sun.set_light_colour(vec4(1, 1, 0.88, 1));
+  sun.set_direction(normalize(vec3(0, -1, 1)));
+
   // Load in shaders
-  eff.add_shader("Coursework/interp.vert", GL_VERTEX_SHADER);
-  eff.add_shader("Coursework/scene.frag", GL_FRAGMENT_SHADER);
+  eff.add_shader("D:/Src/C/set08116/labs/practicals/Coursework/interp.vert", GL_VERTEX_SHADER);
+  eff.add_shader("D:/Src/C/set08116/labs/practicals/Coursework/scene.frag", GL_FRAGMENT_SHADER);
 
   // Build effect
   eff.build();
@@ -63,14 +68,14 @@ bool load_content() {
   //Gem texture
   textures[0] = texture("Coursework/wood-squares.jpg", true, true);
   //Marble texture
-  textures[1] = texture("Coursework/marble.jpg", true, true);
+  textures[1] = texture("D:/Textures/Marble/black-stone.jpg", true, true);
 
   seperation = 0;
   for (size_t i = 0; i < 4; i++) {
-    spots[i].set_position(vec3(seperation, 0, 0));
+    spots[i].set_position(vec3(seperation, 5, 0));
     spots[i].set_light_colour(vec4(1, 1, 1, 1));
     spots[i].set_direction(vec3(0, -1, 0));
-    spots[i].set_range(2);
+    spots[i].set_range(8);
     spots[i].set_power(1);
     seperation -= 24;
   }
@@ -154,19 +159,17 @@ bool render() {
     glUniformMatrix4fv(eff.get_uniform_location("M"), 1, GL_FALSE, value_ptr(M));
 
     //Bind texture to renderer and pass to shader
-    bool texture_exists = true;
     if (e.first == "magic_stone")
       renderer::bind(textures[0], 0);
-    else if (e.first.find("pedestal") != string::npos)
+//    else if (e.first.find("pedestal") != string::npos)
+    else  
       renderer::bind(textures[1], 0);
-    else
-      texture_exists = false;
 
     renderer::bind(m.get_material(), "mat");
     renderer::bind(spots, "spots");
+    renderer::bind(sun, "sun");
 
     glUniform1i(eff.get_uniform_location("tex"), 0);
-    glUniform1i(eff.get_uniform_location("texture_exists"), texture_exists);
     glUniform3fv(eff.get_uniform_location("eye_pos"), 1, value_ptr(cam.get_position()));
     // Render mesh
     renderer::render(m);
