@@ -2,7 +2,6 @@
 #include <glm\glm.hpp>
 #include <graphics_framework.h>
 
-
 using namespace std;
 using namespace graphics_framework;
 using namespace glm;
@@ -17,6 +16,7 @@ vec2 uv_scroll;
 double run_time = 0.0;
 double cursor_x = 0.0;
 double cursor_y = 0.0;
+bool is_free = true;
 
 bool initialise() {
   glfwSetInputMode(renderer::get_window(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -87,6 +87,8 @@ bool load_content() {
 
   // Setfree_camera properties
   free_cam.set_position(vec3(-35.0f, 10.0f, 40.0f));
+  target_cam.set_position(vec3(0, 2.5, 15));
+  target_cam.set_target(vec3(0, 0, 0));
   // ~ around 70 degrees fov
   free_cam.set_projection(1.222f, renderer::get_screen_aspect(), 0.1f, 1000.0f);
   target_cam.set_projection(1.222f, renderer::get_screen_aspect(), 0.1f, 1000.0f);
@@ -125,29 +127,38 @@ bool update(float delta_time) {
   //Target camera positioning
   if (glfwGetKey(renderer::get_window(), '1')) {
     target_cam.set_position(vec3(0, 2.5, 15));
-    target_cam.set_target(meshes["pedastel"].get_transform().position);
+    target_cam.set_target(vec3(0, 0, 0));
   } if (glfwGetKey(renderer::get_window(), '2')) {
     target_cam.set_position(vec3(-24, 2.5, 15));
-    target_cam.set_target(meshes["pedastel2"].get_transform().position);
+    target_cam.set_target(vec3(-24, 0, 0));
   } if (glfwGetKey(renderer::get_window(), '3')) {
     target_cam.set_position(vec3(-48, 2.5, 15));
-    target_cam.set_target(meshes["pedastel3"].get_transform().position);
+    target_cam.set_target(vec3(-48, 0, 0));
   } if (glfwGetKey(renderer::get_window(), '4')) {
     target_cam.set_position(vec3(-72, 2.5, 15));
-    target_cam.set_target(meshes["pedastel4"].get_transform().position);
+    target_cam.set_target(vec3(-72, 0, 0));
+  }
+
+  static float old_run_time;
+  if (glfwGetKey(renderer::get_window(), 'P') && (((run_time - old_run_time) >= 0.5) || old_run_time == 0)) {
+    is_free = !is_free;
+    old_run_time = run_time;
   }
   //Manipulate transform of the warp_stone
   float factor = (1.0 + cosf(run_time)) * 2;
   meshes["warp_stone"].get_transform().scale = vec3(pow(factor, 1.5), sqrtf(factor), 2);
   meshes["warp_stone"].get_transform().rotate(vec3(quarter_pi<float>(), quarter_pi<float>(), 0.0f) * delta_time);
   
-  // Move free_cam
-  free_cam.move(movement);
-  // Update the free_cam
-  free_cam.update(delta_time);
-  // Update cursor pos
-  cursor_x = new_x;
-  cursor_y = new_y;
+  // Update the main camera
+  if (is_free) {
+    // Move free_cam
+    free_cam.move(movement);
+    free_cam.update(delta_time);
+    // Update cursor pos
+    cursor_x = new_x;
+    cursor_y = new_y;
+  } else
+    target_cam.update(delta_time);
 
   run_time += delta_time;
   uv_scroll += vec2(0, delta_time * 0.05);
@@ -155,6 +166,12 @@ bool update(float delta_time) {
 }
 
 bool render() {
+  //Optimization if using target cam
+  mat4 V, P;
+  if (!is_free) {
+    V = target_cam.get_view();
+    P = target_cam.get_projection();
+  }
   // Render meshes
   for (auto &e : meshes) {
     auto m = e.second;
@@ -164,8 +181,11 @@ bool render() {
 
     // Create MVP matrix
     auto M = m.get_transform().get_transform_matrix();
-    auto V = free_cam.get_view();
-    auto P = free_cam.get_projection();
+    //Have to update VP every frame due to camera being movable
+    if (is_free) {
+      V = free_cam.get_view();
+      P = free_cam.get_projection();
+    }
     auto MVP = P * V * M;
 
     // Set MVP matrix uniform
