@@ -7,8 +7,9 @@ using namespace graphics_framework;
 using namespace glm;
 
 map<string, mesh> meshes;
-array<texture, 4> textures;
+array<texture, 5> textures;
 vector<spot_light> spots(4);
+vector<point_light> points(4);
 effect eff;
 free_camera free_cam;
 target_camera target_cam;
@@ -30,15 +31,20 @@ bool initialise() {
 
 bool load_content() {
   meshes["warp_stone"] = mesh(geometry_builder::create_box());
-  meshes["dissolve_stone"] = mesh(geometry_builder::create_box());
+  meshes["dissolve_stone"] = mesh(geometry_builder::create_sphere(50, 50));
   meshes["pedestal"] = mesh(geometry("D:/cwk-cache/pedestal.obj"));
-  
-  meshes["warp_stone"].get_material().set_shininess(50);
-  meshes["dissolve_stone"].get_material().set_shininess(25);
-  meshes["pedestal"].get_material().set_shininess(20);
+  meshes["lamp"] = mesh(geometry("D:/cwk-cache/spotlight.obj"));
 
+  meshes["lamp"].get_transform().position = vec3(0, 15, 0);
+  meshes["lamp"].get_transform().scale = vec3(2, 2, 2);
+  meshes["warp_stone"].get_material().set_shininess(35);
+  meshes["dissolve_stone"].get_material().set_shininess(45);
+  meshes["pedestal"].get_material().set_shininess(10);
+
+  meshes["dissolve_stone"] = mesh(geometry_builder::create_sphere(50, 50));
   meshes["dissolve_stone"].get_transform().position = vec3(-24, 0, 0);
-  meshes["dissolve_stone"].get_transform().scale = vec3(2.5, 2.5, 2.5);
+  meshes["dissolve_stone"].get_transform().scale = vec3(2, 2, 2);
+  
 
   meshes["pedestal"].get_transform().position = vec3(0, -5, 0);
   meshes["pedestal"].get_transform().scale = vec3(0.3, 0.3, 0.3);
@@ -46,26 +52,40 @@ bool load_content() {
   meshes["pedestal2"] = mesh(meshes["pedestal"]);
   meshes["pedestal3"] = mesh(meshes["pedestal"]);
   meshes["pedestal4"] = mesh(meshes["pedestal"]);
+  meshes["lamp2"] = mesh(meshes["lamp"]);
+  meshes["lamp3"] = mesh(meshes["lamp"]);
+  meshes["lamp4"] = mesh(meshes["lamp"]);
 
-  int seperation = 0;
+
+  int seperation[2] = { 0 };
   for (auto &e : meshes) {
     material mat = e.second.get_material();
     if (e.first.find("pedestal") != string::npos) {
-      e.second.get_transform().position -= vec3(seperation, 0, 0);
-      seperation += 24;
+      e.second.get_transform().position -= vec3(seperation[0], 0, 0);
+      seperation[0] += 24;
     }
+    else if (e.first.find("lamp") != string::npos) {
+      e.second.get_transform().position -= vec3(seperation[1], 0, 0);
+      seperation[1] += 24;
+    }
+
     mat.set_emissive(vec4(0, 0, 0, 1));
     mat.set_specular(vec4(1, 1, 1, 1));
   }
+  
+  meshes["dissolve_stone"].get_material().set_specular(vec4(0, 0.35, 0, 1));
 
-  seperation = 0;
+  seperation[0] = 0;
   for (size_t i = 0; i < 4; i++) {
-    spots[i].set_position(vec3(seperation, 30, 0));
+    spots[i].set_position(vec3(seperation[0], 15, 0));
     spots[i].set_light_colour(vec4(1, 1, 0.7, 1));
     spots[i].set_direction(vec3(0, -1, 0));
     spots[i].set_range(50);
     spots[i].set_power(40);
-    seperation -= 24;
+    points[i].set_position(vec3(seperation[0], 13.5, 0.5));
+    points[i].set_light_colour(vec4(1, 1, 0.7, 1));
+    points[i].set_range(4);
+    seperation[0] -= 24;
   }
 
   // Load in shaders
@@ -84,6 +104,8 @@ bool load_content() {
   textures[2] = texture("D:/Textures/Blue/blue-stone.jpg", true, true);
   //Blend map for linen red
   textures[3] = texture("D:/Textures/Blend/passive-blend.png");
+  //Spotlight texture
+  textures[4] = texture("D:/Textures/Rust/rusty-light.jpg");
 
   // Setfree_camera properties
   free_cam.set_position(vec3(-35.0f, 10.0f, 40.0f));
@@ -148,6 +170,7 @@ bool update(float delta_time) {
   float factor = (1.0 + cosf(run_time)) * 2;
   meshes["warp_stone"].get_transform().scale = vec3(pow(factor, 1.5), sqrtf(factor), 2);
   meshes["warp_stone"].get_transform().rotate(vec3(quarter_pi<float>(), quarter_pi<float>(), 0.0f) * delta_time);
+  meshes["dissolve_stone"].get_transform().rotate(vec3(half_pi<float>() * delta_time, 0, 0));
   
   // Update the main camera
   if (is_free) {
@@ -209,11 +232,14 @@ bool render() {
       glUniform2fv(eff.get_uniform_location("UV_SCROLL"), 1, value_ptr(uv_scroll));
     } else if (e.first.find("pedestal") != string::npos)
       renderer::bind(textures[1], 0);
+    else if (e.first.find("lamp") != string::npos)
+      renderer::bind(textures[4], 0);
     else
       texture_exists = false;
 
     renderer::bind(m.get_material(), "mat");
     renderer::bind(spots, "spots");
+    renderer::bind(points, "points");
 
     glUniform1i(eff.get_uniform_location("dissolve_enabled"), dissolve_enabled);
     glUniform1i(eff.get_uniform_location("texture_exists"), texture_exists);
