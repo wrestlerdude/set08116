@@ -7,7 +7,7 @@ using namespace graphics_framework;
 using namespace glm;
 
 map<string, mesh> meshes;
-array<texture, 5> textures;
+array<texture, 6> textures;
 vector<spot_light> spots(4);
 vector<point_light> points(4);
 effect eff;
@@ -34,6 +34,9 @@ bool load_content() {
   meshes["dissolve_stone"] = mesh(geometry_builder::create_sphere(50, 50));
   meshes["pedestal"] = mesh(geometry("D:/cwk-cache/pedestal.obj"));
   meshes["lamp"] = mesh(geometry("D:/cwk-cache/spotlight.obj"));
+  meshes["skull"] = mesh(geometry("D:/cwk-cache/skull.obj"));
+
+  meshes["skull"].get_transform().scale = vec3(0.05, 0.05, 0.05);
 
   meshes["lamp"].get_transform().position = vec3(0, 15, 0);
   meshes["lamp"].get_transform().scale = vec3(2, 2, 2);
@@ -106,6 +109,8 @@ bool load_content() {
   textures[3] = texture("D:/Textures/Blend/passive-blend.png");
   //Spotlight texture
   textures[4] = texture("D:/Textures/Rust/rusty-light.jpg");
+  //?? texture
+  textures[5] = texture("D:/cwk-cache/bone.png");
 
   // Setfree_camera properties
   free_cam.set_position(vec3(-35.0f, 10.0f, 40.0f));
@@ -230,10 +235,13 @@ bool render() {
       glUniform1i(eff.get_uniform_location("dissolve"), 1);
       glUniform1f(eff.get_uniform_location("dissolve_factor"), (0.75 * sinf(2 * run_time - 0.75)) + 0.5);
       glUniform2fv(eff.get_uniform_location("UV_SCROLL"), 1, value_ptr(uv_scroll));
-    } else if (e.first.find("pedestal") != string::npos)
+    }
+    else if (e.first.find("pedestal") != string::npos)
       renderer::bind(textures[1], 0);
     else if (e.first.find("lamp") != string::npos)
       renderer::bind(textures[4], 0);
+    else if (e.first == "skull")
+      renderer::bind(textures[5], 0);
     else
       texture_exists = false;
 
