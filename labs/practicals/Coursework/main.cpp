@@ -12,7 +12,8 @@ array<texture, 2> textures;
 vector<spot_light> spots(4);
 directional_light sun;
 effect eff;
-free_camera cam;
+free_camera free_cam;
+//target_camera;
 double run_time = 0.0;
 double cursor_x = 0.0;
 double cursor_y = 0.0;
@@ -26,11 +27,16 @@ bool initialise() {
 
 bool load_content() {
 
-  meshes["magic_stone"] = mesh(geometry_builder::create_box());
+  meshes["warp_stone"] = mesh(geometry_builder::create_box());
+  meshes["dissolve_stone"] = mesh(geometry_builder::create_box());
   meshes["pedestal"] = mesh(geometry("Coursework/pedestal.obj"));
-
-  meshes["magic_stone"].get_material().set_shininess(50);
+  
+  meshes["warp_stone"].get_material().set_shininess(50);
+  meshes["dissolve_stone"].get_material().set_shininess(200);
   meshes["pedestal"].get_material().set_shininess(1000);
+
+  meshes["dissolve_stone"].get_transform().position = vec3(-24, 0, 0);
+  meshes["dissolve_stone"].get_transform().scale = vec3(2.5, 2.5, 2.5);
 
   meshes["pedestal"].get_transform().position = vec3(0, -5, 0);
   meshes["pedestal"].get_transform().scale = vec3(0.3, 0.3, 0.3);
@@ -41,20 +47,17 @@ bool load_content() {
 
   int seperation = 0;
   for (auto &e : meshes) {
+    material mat = e.second.get_material();
     if (e.first.find("pedestal") != string::npos) {
       e.second.get_transform().position -= vec3(seperation, 0, 0);
       seperation += 24;
     }
-  }
-
-  for (auto &e : meshes) {
-    material mat = e.second.get_material();
     mat.set_emissive(vec4(0, 0, 0, 1));
     mat.set_specular(vec4(1, 1, 1, 1));
   }
 
-  sun.set_ambient_intensity(vec4(0.2, 0.2, 0.2, 1));
-  sun.set_light_colour(vec4(1, 1, 0.88, 1));
+  sun.set_ambient_intensity(vec4(0.1, 0.1, 0.1, 1));
+  sun.set_light_colour(vec4(1, 1, 1, 1));
   sun.set_direction(normalize(vec3(0, -1, 1)));
 
   // Load in shaders
@@ -72,19 +75,19 @@ bool load_content() {
 
   seperation = 0;
   for (size_t i = 0; i < 4; i++) {
-    spots[i].set_position(vec3(seperation, 5, 0));
-    spots[i].set_light_colour(vec4(1, 1, 1, 1));
+    spots[i].set_position(vec3(seperation, 10, 0));
+    spots[i].set_light_colour(vec4(1, 1, 0.5, 1));
     spots[i].set_direction(vec3(0, -1, 0));
     spots[i].set_range(8);
     spots[i].set_power(1);
     seperation -= 24;
   }
 
-  // Set camera properties
-  cam.set_position(vec3(-30.0f, 5.0f, 15.0f));
-  cam.set_target(vec3(0.0f, 0.0f, 0.0f));
+  // Setfree_camera properties
+  free_cam.set_position(vec3(-35.0f, 10.0f, 40.0f));
+  free_cam.set_target(vec3(-30.0f, -5.0f, 0.0f));
   // ~ around 70 degrees fov
-  cam.set_projection(1.222f, renderer::get_screen_aspect(), 0.1f, 1000.0f);
+  free_cam.set_projection(1.222f, renderer::get_screen_aspect(), 0.1f, 1000.0f);
   return true;
 }
 
@@ -106,10 +109,10 @@ bool update(float delta_time) {
   delta_x *= ratio_width;
   delta_y *= ratio_height;
 
-  // Rotate cameras by delta
-  cam.rotate(delta_x, -delta_y);
+  // Rotate free_cam by delta
+  free_cam.rotate(delta_x, -delta_y);
 
-  // Use keyboard to move the camera - WSAD
+  // Use keyboard to move thefree_camera - WSAD
   vec3 movement = vec3(0, 0, 0);
   if (glfwGetKey(renderer::get_window(), 'W'))
     movement.z += 0.25f;
@@ -120,19 +123,29 @@ bool update(float delta_time) {
   if (glfwGetKey(renderer::get_window(), 'D'))
     movement.x += 0.25f;
 
-  // Move camera
-  cam.move(movement);
-  // Update the camera
-  cam.update(delta_time);
+  //Targetfree_camera positioning
+  if (glfwGetKey(renderer::get_window(), '4'))
+   free_cam.set_position(vec3(0, 0, 12.5));
+  if (glfwGetKey(renderer::get_window(), '3'))
+   free_cam.set_position(vec3(-24, 0, 12.5));
+  if (glfwGetKey(renderer::get_window(), '2'))
+   free_cam.set_position(vec3(-48, 0, 12.5));
+  if (glfwGetKey(renderer::get_window(), '1'))
+   free_cam.set_position(vec3(-72, 0, 12.5));
+
+  // Move free_cam
+  free_cam.move(movement);
+  // Update the free_cam
+  free_cam.update(delta_time);
   // Update cursor pos
   cursor_x = new_x;
   cursor_y = new_y;
 
   run_time += delta_time;
-  //Manipulate transform of the magic_stone
+  //Manipulate transform of the warp_stone
   float factor = (1.0 + cosf(run_time)) * 2;
-  meshes["magic_stone"].get_transform().scale = vec3(pow(factor, 1.5), sqrtf(factor), 2);
-  meshes["magic_stone"].get_transform().rotate(vec3(quarter_pi<float>(), quarter_pi<float>(), 0.0f) * delta_time);
+  meshes["warp_stone"].get_transform().scale = vec3(pow(factor, 1.5), sqrtf(factor), 2);
+  meshes["warp_stone"].get_transform().rotate(vec3(quarter_pi<float>(), quarter_pi<float>(), 0.0f) * delta_time);
 
   return true;
 }
@@ -147,8 +160,8 @@ bool render() {
 
     // Create MVP matrix
     auto M = m.get_transform().get_transform_matrix();
-    auto V = cam.get_view();
-    auto P = cam.get_projection();
+    auto V = free_cam.get_view();
+    auto P = free_cam.get_projection();
     auto MVP = P * V * M;
 
     // Set MVP matrix uniform
@@ -159,9 +172,8 @@ bool render() {
     glUniformMatrix4fv(eff.get_uniform_location("M"), 1, GL_FALSE, value_ptr(M));
 
     //Bind texture to renderer and pass to shader
-    if (e.first == "magic_stone")
+    if (e.first == "warp_stone")
       renderer::bind(textures[0], 0);
-//    else if (e.first.find("pedestal") != string::npos)
     else  
       renderer::bind(textures[1], 0);
 
@@ -170,7 +182,7 @@ bool render() {
     renderer::bind(sun, "sun");
 
     glUniform1i(eff.get_uniform_location("tex"), 0);
-    glUniform3fv(eff.get_uniform_location("eye_pos"), 1, value_ptr(cam.get_position()));
+    glUniform3fv(eff.get_uniform_location("eye_pos"), 1, value_ptr(free_cam.get_position()));
     // Render mesh
     renderer::render(m);
   }
