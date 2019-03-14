@@ -9,7 +9,7 @@ using namespace glm;
 map<string, mesh> meshes;
 array<texture, 6> textures;
 vector<spot_light> spots(4);
-vector<point_light> points(4);
+vector<point_light> points(5);
 effect eff;
 free_camera free_cam;
 target_camera target_cam;
@@ -35,21 +35,26 @@ bool load_content() {
   meshes["pedestal"] = mesh(geometry("D:/cwk-cache/pedestal.obj"));
   meshes["lamp"] = mesh(geometry("D:/cwk-cache/spotlight.obj"));
   meshes["skeleton"] = mesh(geometry("D:/cwk-cache/skeleton2.obj"));
-  
+  meshes["amethyst"] = mesh(geometry("D:/cwk-cache/amethyst.obj"));
+
   meshes["lamp"].get_transform().position = vec3(0, 15, 0);
   meshes["lamp"].get_transform().scale = vec3(2, 2, 2);
+
+  meshes["amethyst"].get_transform().position = vec3(-48, 0, 0);
+  meshes["amethyst"].get_transform().scale = vec3(2.5, 2.5, 2.5);
 
   meshes["warp_stone"].get_material().set_shininess(35);
   meshes["dissolve_stone"].get_material().set_shininess(45);
   meshes["pedestal"].get_material().set_shininess(10);
   meshes["skeleton"].get_material().set_shininess(5);
+  meshes["amethyst"].get_material().set_shininess(2);
 
   meshes["dissolve_stone"] = mesh(geometry_builder::create_sphere(50, 50));
   meshes["dissolve_stone"].get_transform().position = vec3(-24, 0, 0);
   meshes["dissolve_stone"].get_transform().scale = vec3(2, 2, 2);
   
   meshes["skeleton"].get_transform().position = vec3(-72, -5, 0);
-  meshes["skeleton"].get_transform().scale = vec3(1.15, 1.15, 1.15);
+  meshes["skeleton"].get_transform().scale = vec3(1.4, 1.4, 1.4);
 
   meshes["pedestal"].get_transform().position = vec3(0, -5, 0);
   meshes["pedestal"].get_transform().scale = vec3(0.3, 0.3, 0.3);
@@ -93,6 +98,11 @@ bool load_content() {
     seperation[0] -= 24;
   }
 
+  //5th point is amethyst sparkle
+  points[4].set_light_colour(vec4(1, 0, 1, 1));
+  points[4].set_range(5);
+  points[4].set_position(vec3(-48, 2, 0));
+
   // Load in shaders
   eff.add_shader("D:/Src/C/set08116-coursework/labs/practicals/Coursework/interp.vert", GL_VERTEX_SHADER);
   eff.add_shader("D:/Src/C/set08116-coursework/labs/practicals/Coursework/scene.frag", GL_FRAGMENT_SHADER);
@@ -115,7 +125,7 @@ bool load_content() {
   textures[5] = texture("D:/cwk-cache/bone.png");
 
   // Setfree_camera properties
-  free_cam.set_position(vec3(-35.0f, 10.0f, 40.0f));
+  free_cam.set_position(vec3(-35.0, 10.0, 40.0));
   target_cam.set_position(vec3(0, 2.5, 15));
   target_cam.set_target(vec3(0, 0, 0));
   // ~ around 70 degrees fov
@@ -140,7 +150,8 @@ bool update(float delta_time) {
   delta_y *= ratio_height;
 
   // Rotate free_cam by delta
-  free_cam.rotate(delta_x, -delta_y);
+  if(is_free)
+    free_cam.rotate(delta_x, -delta_y);
 
   // Use keyboard to move thefree_camera - WSAD
   vec3 movement = vec3(0, 0, 0);
@@ -154,16 +165,16 @@ bool update(float delta_time) {
     movement.x += 0.25f;
 
   //Target camera positioning
-  if (glfwGetKey(renderer::get_window(), '1')) {
+  if (glfwGetKey(renderer::get_window(), '4')) {
     target_cam.set_position(vec3(0, 2.5, 15));
     target_cam.set_target(vec3(0, 0, 0));
-  } if (glfwGetKey(renderer::get_window(), '2')) {
+  } if (glfwGetKey(renderer::get_window(), '3')) {
     target_cam.set_position(vec3(-24, 2.5, 15));
     target_cam.set_target(vec3(-24, 0, 0));
-  } if (glfwGetKey(renderer::get_window(), '3')) {
+  } if (glfwGetKey(renderer::get_window(), '2')) {
     target_cam.set_position(vec3(-48, 2.5, 15));
     target_cam.set_target(vec3(-48, 0, 0));
-  } if (glfwGetKey(renderer::get_window(), '4')) {
+  } if (glfwGetKey(renderer::get_window(), '1')) {
     target_cam.set_position(vec3(-72, 2.5, 15));
     target_cam.set_target(vec3(-72, 0, 0));
   }
@@ -171,13 +182,15 @@ bool update(float delta_time) {
   static float old_run_time;
   if (glfwGetKey(renderer::get_window(), 'P') && (((run_time - old_run_time) >= 0.5) || old_run_time == 0)) {
     is_free = !is_free;
+    if (is_free)
+      free_cam.set_position(vec3(-35.0, 10.0, 40.0));
     old_run_time = run_time;
   }
   //Manipulate transform of the warp_stone
   float factor = (1.0 + cosf(run_time)) * 2;
   meshes["warp_stone"].get_transform().scale = vec3(pow(factor, 1.5), sqrtf(factor), 2);
   meshes["warp_stone"].get_transform().rotate(vec3(quarter_pi<float>(), quarter_pi<float>(), 0.0f) * delta_time);
-  meshes["dissolve_stone"].get_transform().rotate(vec3(half_pi<float>() * delta_time, 0, 0));
+  meshes["amethyst"].get_transform().rotate(vec3(0, half_pi<float>(), 0.0f) * delta_time);
   meshes["skeleton"].get_material().set_diffuse(vec4(0.5 * sinf(4 * run_time) + 0.5,
                                                      0.5 * cosf(5 * run_time) + 0.5,
                                                      0.5 * sinf(1.25 * run_time) + 0.5, 1));
@@ -237,7 +250,7 @@ bool render() {
       renderer::bind(textures[2], 0);
       renderer::bind(textures[3], 1);
       glUniform1i(eff.get_uniform_location("dissolve"), 1);
-      glUniform1f(eff.get_uniform_location("dissolve_factor"), (0.75 * sinf(2 * run_time - 0.75)) + 0.5);
+      glUniform1f(eff.get_uniform_location("dissolve_factor"), (0.6 * sinf(2 * run_time - 0.75)) + 0.8);
       glUniform2fv(eff.get_uniform_location("UV_SCROLL"), 1, value_ptr(uv_scroll));
     }
     else if (e.first.find("pedestal") != string::npos)

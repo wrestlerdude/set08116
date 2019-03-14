@@ -35,7 +35,7 @@ uniform bool texture_exists;
 uniform bool dissolve_enabled;
 
 uniform spot_light spots[4];
-uniform point_light points[4];
+uniform point_light points[5];
 uniform material mat;
 
 uniform vec3 eye_pos;
@@ -97,11 +97,12 @@ void main() {
   if (texture_exists)
     tex_colour = texture(tex, tex_coord);
   else
-    tex_colour = vec4(1, 1, 1, 1);
+  //Normally full white but in current scene only untextured thing is the amethyst
+    tex_colour = vec4(1, 0, 1, 1);
 
   vec3 view_dir = normalize(eye_pos - position);
   
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 5; i++)
     frag_colour += calculate_point(points[i], mat, position, normal, view_dir, tex_colour);
 
   for (int i = 0; i < 4; i++)
