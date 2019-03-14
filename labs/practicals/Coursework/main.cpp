@@ -34,20 +34,22 @@ bool load_content() {
   meshes["dissolve_stone"] = mesh(geometry_builder::create_sphere(50, 50));
   meshes["pedestal"] = mesh(geometry("D:/cwk-cache/pedestal.obj"));
   meshes["lamp"] = mesh(geometry("D:/cwk-cache/spotlight.obj"));
-  meshes["skull"] = mesh(geometry("D:/cwk-cache/skull.obj"));
-
-  meshes["skull"].get_transform().scale = vec3(0.05, 0.05, 0.05);
-
+  meshes["skeleton"] = mesh(geometry("D:/cwk-cache/skeleton2.obj"));
+  
   meshes["lamp"].get_transform().position = vec3(0, 15, 0);
   meshes["lamp"].get_transform().scale = vec3(2, 2, 2);
+
   meshes["warp_stone"].get_material().set_shininess(35);
   meshes["dissolve_stone"].get_material().set_shininess(45);
   meshes["pedestal"].get_material().set_shininess(10);
+  meshes["skeleton"].get_material().set_shininess(5);
 
   meshes["dissolve_stone"] = mesh(geometry_builder::create_sphere(50, 50));
   meshes["dissolve_stone"].get_transform().position = vec3(-24, 0, 0);
   meshes["dissolve_stone"].get_transform().scale = vec3(2, 2, 2);
   
+  meshes["skeleton"].get_transform().position = vec3(-72, -5, 0);
+  meshes["skeleton"].get_transform().scale = vec3(1.15, 1.15, 1.15);
 
   meshes["pedestal"].get_transform().position = vec3(0, -5, 0);
   meshes["pedestal"].get_transform().scale = vec3(0.3, 0.3, 0.3);
@@ -109,7 +111,7 @@ bool load_content() {
   textures[3] = texture("D:/Textures/Blend/passive-blend.png");
   //Spotlight texture
   textures[4] = texture("D:/Textures/Rust/rusty-light.jpg");
-  //?? texture
+  //Bone texture
   textures[5] = texture("D:/cwk-cache/bone.png");
 
   // Setfree_camera properties
@@ -176,7 +178,9 @@ bool update(float delta_time) {
   meshes["warp_stone"].get_transform().scale = vec3(pow(factor, 1.5), sqrtf(factor), 2);
   meshes["warp_stone"].get_transform().rotate(vec3(quarter_pi<float>(), quarter_pi<float>(), 0.0f) * delta_time);
   meshes["dissolve_stone"].get_transform().rotate(vec3(half_pi<float>() * delta_time, 0, 0));
-  
+  meshes["skeleton"].get_material().set_diffuse(vec4(0.5 * sinf(4 * run_time) + 0.5,
+                                                     0.5 * cosf(5 * run_time) + 0.5,
+                                                     0.5 * sinf(1.25 * run_time) + 0.5, 1));
   // Update the main camera
   if (is_free) {
     // Move free_cam
@@ -240,7 +244,7 @@ bool render() {
       renderer::bind(textures[1], 0);
     else if (e.first.find("lamp") != string::npos)
       renderer::bind(textures[4], 0);
-    else if (e.first == "skull")
+    else if (e.first == "skeleton")
       renderer::bind(textures[5], 0);
     else
       texture_exists = false;
