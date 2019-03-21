@@ -20,47 +20,44 @@ double cursor_y = 0.0;
 bool is_free = true;
 
 bool initialise() {
+  //Set resolution to 1600x900
   renderer::set_screen_dimensions(1600, 900);
+  //Capture cursor
   glfwSetInputMode(renderer::get_window(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwGetCursorPos(renderer::get_window(), &cursor_x, &cursor_y);
+  //Enable MSAA
   glEnable(GL_MULTISAMPLE);
+  //Background colour: Navy Blue
   glClearColor(0, 0, 0.141, 1);
   glClear(GL_COLOR_BUFFER_BIT);
-
 
   return true;
 }
 
 bool load_content() {
-  meshes["box"] = mesh(geometry_builder::create_box());
   meshes["warp_stone"] = mesh(geometry_builder::create_box());
   meshes["dissolve_stone"] = mesh(geometry_builder::create_sphere(50, 50));
-  meshes["pedestal"] = mesh(geometry("models/pedestal.obj"));
-  meshes["lamp"] = mesh(geometry("models/spotlight.obj"));
-  meshes["skeleton"] = mesh(geometry("models/skeleton.obj"));
-  meshes["amethyst"] = mesh(geometry("models/amethyst.obj"));
+  meshes["pedestal"] = mesh(geometry("res/models/pedestal.obj"));
+  meshes["lamp"] = mesh(geometry("res/models/spotlight.obj"));
+  meshes["skeleton"] = mesh(geometry("res/models/skeleton.obj"));
+  meshes["amethyst"] = mesh(geometry("res/models/amethyst.obj"));
 
   meshes["lamp"].get_transform().position = vec3(0, 15, 0);
   meshes["lamp"].get_transform().scale = vec3(2, 2, 2);
-
   meshes["amethyst"].get_transform().position = vec3(-48, 0, 0);
   meshes["amethyst"].get_transform().scale = vec3(2.5, 2.5, 2.5);
+  meshes["dissolve_stone"].get_transform().position = vec3(-24, 0, 0);
+  meshes["dissolve_stone"].get_transform().scale = vec3(2, 2, 2);
+  meshes["skeleton"].get_transform().position = vec3(-72, -5, 0);
+  meshes["skeleton"].get_transform().scale = vec3(1.4, 1.4, 1.4);
+  meshes["pedestal"].get_transform().position = vec3(0, -5, 0);
+  meshes["pedestal"].get_transform().scale = vec3(0.3, 0.3, 0.3);
 
   meshes["warp_stone"].get_material().set_shininess(35);
   meshes["dissolve_stone"].get_material().set_shininess(45);
   meshes["pedestal"].get_material().set_shininess(10);
   meshes["skeleton"].get_material().set_shininess(5);
   meshes["amethyst"].get_material().set_shininess(2);
-
-  meshes["dissolve_stone"] = mesh(geometry_builder::create_sphere(50, 50));
-  meshes["dissolve_stone"].get_transform().position = vec3(-24, 0, 0);
-  meshes["dissolve_stone"].get_transform().scale = vec3(2, 2, 2);
-  
-  meshes["skeleton"].get_transform().position = vec3(-72, -5, 0);
-  meshes["skeleton"].get_transform().scale = vec3(1.4, 1.4, 1.4);
-
-  meshes["pedestal"].get_transform().position = vec3(0, -5, 0);
-  meshes["pedestal"].get_transform().scale = vec3(0.3, 0.3, 0.3);
 
   meshes["pedestal2"] = mesh(meshes["pedestal"]);
   meshes["pedestal3"] = mesh(meshes["pedestal"]);
@@ -69,7 +66,7 @@ bool load_content() {
   meshes["lamp3"] = mesh(meshes["lamp"]);
   meshes["lamp4"] = mesh(meshes["lamp"]);
 
-
+  //Placement of pedastels and lamp models
   int seperation[2] = { 0 };
   for (auto &e : meshes) {
     material mat = e.second.get_material();
@@ -86,8 +83,10 @@ bool load_content() {
     mat.set_specular(vec4(1, 1, 1, 1));
   }
   
+  //Custom light specular for the dissolve_stone
   meshes["dissolve_stone"].get_material().set_specular(vec4(0, 0.35, 0, 1));
 
+  //Placement and initial values of lights
   seperation[0] = 0;
   for (size_t i = 0; i < 4; i++) {
     spots[i].set_position(vec3(seperation[0], 15, 0));
@@ -107,40 +106,41 @@ bool load_content() {
   points[4].set_position(vec3(-48, 2, 0));
 
   // Load in shaders
-  eff.add_shader("shaders/transform-normal.vert", GL_VERTEX_SHADER);
-  eff.add_shader("shaders/scene-phong.frag", GL_FRAGMENT_SHADER);
+  eff.add_shader("res/shaders/transform-normal.vert", GL_VERTEX_SHADER);
+  eff.add_shader("res/shaders/scene-phong.frag", GL_FRAGMENT_SHADER);
 
   // Build effect
   eff.build();
 
   //Apply textures with Anisotropic filtering and generate mipmaps
   //Wood texture
-  textures[0] = texture("textures/wood-squares.jpg", true, true);
+  textures[0] = texture("res/textures/wood-squares.jpg", true, true);
   //Marble texture
-  textures[1] = texture("textures/stone.jpg", true, true);
+  textures[1] = texture("res/textures/stone.jpg", true, true);
   //Blue stone texture
-  textures[2] = texture("textures/blue-stone.jpg", true, true);
+  textures[2] = texture("res/textures/blue-stone.jpg", true, true);
   //Blend map for linen red
-  textures[3] = texture("textures/passive-blend.png");
-  //Spotlight texture
-  textures[4] = texture("textures/rusty-light.jpg");
+  textures[3] = texture("res/textures/passive-blend.png");
+  //Spotlight model texture
+  textures[4] = texture("res/textures/rusty-light.jpg");
   //Bone texture
-  textures[5] = texture("textures/bone.png");
+  textures[5] = texture("res/textures/bone.png");
 
-  // Setfree_camera properties
-  free_cam.set_position(vec3(-35.0, 10.0, 40.0));
-  target_cam.set_position(vec3(0, 2.5, 15));
-  target_cam.set_target(vec3(0, 0, 0));
-  // ~ around 70 degrees fov
-  free_cam.set_projection(1.222f, renderer::get_screen_aspect(), 0.1f, 1000.0f);
-  target_cam.set_projection(1.222f, renderer::get_screen_aspect(), 0.1f, 1000.0f);
+  // Set camera properties
+  free_cam.set_position(vec3(-35, 10, 40));
+  target_cam.set_position(vec3(-72, 2.5, 15));
+  target_cam.set_target(vec3(-72, 0, 0));
+  // 1.222 ~ around 70 degrees fov
+  free_cam.set_projection(1.222, renderer::get_screen_aspect(), 0.1, 1000);
+  target_cam.set_projection(1.222, renderer::get_screen_aspect(), 0.1, 1000);
   return true;
 }
 
 bool update(float delta_time) {
-  // The ratio of pixels to rotation - remember the fov
-  static double ratio_width = 1.222f / static_cast<float>(renderer::get_screen_width());
-  static double ratio_height = (1.222f * (static_cast<float>(renderer::get_screen_height()) / static_cast<float>(renderer::get_screen_width()))) / static_cast<float>(renderer::get_screen_height());
+  // The ratio of pixels to rotation
+  static double ratio_width = 1.222 / static_cast<float>(renderer::get_screen_width());
+  static double ratio_height = (1.222 * (static_cast<float>(renderer::get_screen_height())
+                               / static_cast<float>(renderer::get_screen_width()))) / static_cast<float>(renderer::get_screen_height());
 
   // Calculate delta of cursor positions from last frame
   double new_x, new_y;
@@ -159,30 +159,35 @@ bool update(float delta_time) {
   // Use keyboard to move thefree_camera - WSAD
   vec3 movement = vec3(0, 0, 0);
   if (glfwGetKey(renderer::get_window(), 'W'))
-    movement.z += 0.25f;
+    movement.z += 0.25;
   if (glfwGetKey(renderer::get_window(), 'S'))
-    movement.z -= 0.25f;
+    movement.z -= 0.25;
   if (glfwGetKey(renderer::get_window(), 'A'))
-    movement.x -= 0.25f;
+    movement.x -= 0.25;
   if (glfwGetKey(renderer::get_window(), 'D'))
-    movement.x += 0.25f;
+    movement.x += 0.25;
 
   //Target camera positioning
-  if (glfwGetKey(renderer::get_window(), '4')) {
-    target_cam.set_position(vec3(0, 2.5, 15));
-    target_cam.set_target(vec3(0, 0, 0));
-  } if (glfwGetKey(renderer::get_window(), '3')) {
-    target_cam.set_position(vec3(-24, 2.5, 15));
-    target_cam.set_target(vec3(-24, 0, 0));
-  } if (glfwGetKey(renderer::get_window(), '2')) {
-    target_cam.set_position(vec3(-48, 2.5, 15));
-    target_cam.set_target(vec3(-48, 0, 0));
-  } if (glfwGetKey(renderer::get_window(), '1')) {
+  if (glfwGetKey(renderer::get_window(), '1')) {
     target_cam.set_position(vec3(-72, 2.5, 15));
     target_cam.set_target(vec3(-72, 0, 0));
   }
-
+  if (glfwGetKey(renderer::get_window(), '2')) {
+    target_cam.set_position(vec3(-48, 2.5, 15));
+    target_cam.set_target(vec3(-48, 0, 0));
+  }
+  if (glfwGetKey(renderer::get_window(), '3')) {
+    target_cam.set_position(vec3(-24, 2.5, 15));
+    target_cam.set_target(vec3(-24, 0, 0));
+  }
+  if (glfwGetKey(renderer::get_window(), '4')) {
+    target_cam.set_position(vec3(0, 2.5, 15));
+    target_cam.set_target(vec3(0, 0, 0));
+  }
+  
+  //Used so that there is delay between switches -> so switching every frame doesn't happen
   static float old_run_time;
+  //Press P to toggle between free_cam and target_cam
   if (glfwGetKey(renderer::get_window(), 'P') && (((run_time - old_run_time) >= 0.5) || old_run_time == 0)) {
     is_free = !is_free;
     if (is_free)
@@ -193,7 +198,9 @@ bool update(float delta_time) {
   float factor = (1.0 + cosf(run_time)) * 2;
   meshes["warp_stone"].get_transform().scale = vec3(pow(factor, 1.5), sqrtf(factor), 2);
   meshes["warp_stone"].get_transform().rotate(vec3(quarter_pi<float>(), quarter_pi<float>(), 0.0f) * delta_time);
+  //Rotate amethyst stone
   meshes["amethyst"].get_transform().rotate(vec3(0, half_pi<float>(), 0.0f) * delta_time);
+  //Change colour diffuse of skeleton, wave range 0 to 1
   meshes["skeleton"].get_material().set_diffuse(vec4(0.5 * sinf(4 * run_time) + 0.5,
                                                      0.5 * cosf(5 * run_time) + 0.5,
                                                      0.5 * sinf(1.25 * run_time) + 0.5, 1));
@@ -209,12 +216,13 @@ bool update(float delta_time) {
     target_cam.update(delta_time);
 
   run_time += delta_time;
+  //Scrolling the dissolve_stone's texture
   uv_scroll += vec2(0, delta_time * 0.05);
   return true;
 }
 
 bool render() {
-  //Optimization if using target cam
+  //Optimization for using target cam
   mat4 V, P;
   if (!is_free) {
     V = target_cam.get_view();
@@ -282,9 +290,10 @@ bool render() {
 }
 
 void main() {
+  //MSAA set to 8 samples
   glfwWindowHint(GLFW_SAMPLES, 8);
   // Create application
-  app application("Coursework");
+  app application("Raish Allan Computer Graphics Coursework Part 1");
   // Set load content, update and render methods
   application.set_load_content(load_content);
   application.set_initialise(initialise);
