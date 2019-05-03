@@ -7,13 +7,17 @@ using namespace graphics_framework;
 using namespace glm;
 
 map<string, mesh> meshes;
+mesh skybox;
+cubemap cube_map;
 array<texture, 6> textures;
 vector<spot_light> spots(4);
 vector<point_light> points(5);
-effect eff;
+effect eff, sky_eff, vignette_eff;
 free_camera free_cam;
 target_camera target_cam;
 vec2 uv_scroll;
+frame_buffer frame;
+geometry screen_quad;
 double run_time = 0.0;
 double cursor_x = 0.0;
 double cursor_y = 0.0;
@@ -35,6 +39,20 @@ bool initialise() {
 }
 
 bool load_content() {
+  // Create frame buffer - use screen width and height
+  frame = frame_buffer(renderer::get_screen_width(), renderer::get_screen_height());
+  // Create screen quad
+  vector<vec3> positions{ vec3(-1.0f, -1.0f, 0.0f), vec3(1.0f, -1.0f, 0.0f), vec3(-1.0f, 1.0f, 0.0f),
+                         vec3(1.0f, 1.0f, 0.0f) };
+  vector<vec2> tex_coords{ vec2(0.0, 0.0), vec2(1.0f, 0.0f), vec2(0.0f, 1.0f), vec2(1.0f, 1.0f) };
+  screen_quad.add_buffer(positions, BUFFER_INDEXES::POSITION_BUFFER);
+  screen_quad.add_buffer(tex_coords, BUFFER_INDEXES::TEXTURE_COORDS_0);
+  screen_quad.set_type(GL_TRIANGLE_STRIP);
+
+
+  skybox = mesh(geometry_builder::create_box());
+  skybox.get_transform().scale = vec3(100, 100, 100);
+
   meshes["warp_stone"] = mesh(geometry_builder::create_box());
   meshes["dissolve_stone"] = mesh(geometry_builder::create_sphere(50, 50));
   meshes["pedestal"] = mesh(geometry("res/models/pedestal.obj"));
@@ -106,11 +124,19 @@ bool load_content() {
   points[4].set_position(vec3(-48, 2, 0));
 
   // Load in shaders
-  eff.add_shader("res/shaders/transform-normal.vert", GL_VERTEX_SHADER);
-  eff.add_shader("res/shaders/scene-phong.frag", GL_FRAGMENT_SHADER);
+  eff.add_shader("res/shaders/main.vert", GL_VERTEX_SHADER);
+  eff.add_shader("res/shaders/main.frag", GL_FRAGMENT_SHADER);
+  eff.add_shader("res/shaders/point.frag", GL_FRAGMENT_SHADER);
+  eff.add_shader("res/shaders/spot.frag", GL_FRAGMENT_SHADER);
+  sky_eff.add_shader("res/shaders/skybox.vert", GL_VERTEX_SHADER);
+  sky_eff.add_shader("res/shaders/skybox.frag", GL_FRAGMENT_SHADER);
+  vignette_eff.add_shader("res/shaders/basic_textured.vert", GL_VERTEX_SHADER);
+  vignette_eff.add_shader("res/shaders/vignette.frag", GL_FRAGMENT_SHADER);
 
   // Build effect
   eff.build();
+  sky_eff.build();
+  vignette_eff.build();
 
   //Apply textures with Anisotropic filtering and generate mipmaps
   //Wood texture
@@ -125,6 +151,10 @@ bool load_content() {
   textures[4] = texture("res/textures/rusty-light.jpg");
   //Bone texture
   textures[5] = texture("res/textures/bone.png");
+
+  array<string, 6> filenames = { "res/textures/miramar_ft.png", "res/textures/miramar_bk.png", "res/textures/miramar_up.png",
+                                "res/textures/miramar_dn.png", "res/textures/miramar_rt.png", "res/textures/miramar_lf.png" };
+  cube_map = cubemap(filenames);
 
   // Set camera properties
   free_cam.set_position(vec3(-35, 10, 40));
@@ -212,22 +242,51 @@ bool update(float delta_time) {
     // Update cursor pos
     cursor_x = new_x;
     cursor_y = new_y;
-  } else
+    skybox.get_transform().position = free_cam.get_position();
+  }
+  else {
     target_cam.update(delta_time);
+    skybox.get_transform().position = target_cam.get_position();
+  }
 
   run_time += delta_time;
   //Scrolling the dissolve_stone's texture
   uv_scroll += vec2(0, delta_time * 0.05);
+
   return true;
 }
 
 bool render() {
+  renderer::set_render_target(frame);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+  camera* cam_ref;
   //Optimization for using target cam
-  mat4 V, P;
-  if (!is_free) {
-    V = target_cam.get_view();
-    P = target_cam.get_projection();
-  }
+  mat4 M, V, P, MVP;
+  if (!is_free)
+    cam_ref = &target_cam;
+  else
+    cam_ref = &free_cam;
+
+  V = cam_ref->get_view();
+  P = cam_ref->get_projection();
+
+  glDisable(GL_DEPTH_TEST);
+  glDepthMask(GL_FALSE);
+  glCullFace(GL_FRONT);
+
+  renderer::bind(sky_eff);
+  M = skybox.get_transform().get_transform_matrix();
+  MVP = P * V * M;
+  glUniformMatrix4fv(sky_eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
+  renderer::bind(cube_map, 0);
+  glUniform1i(sky_eff.get_uniform_location("cube_map"), 0);
+  renderer::render(skybox);
+
+  glEnable(GL_DEPTH_TEST);
+  glDepthMask(GL_TRUE);
+  glCullFace(GL_BACK);
+
   // Render meshes
   for (auto &e : meshes) {
     auto m = e.second;
@@ -236,12 +295,7 @@ bool render() {
     renderer::bind(eff);
 
     // Create MVP matrix
-    auto M = m.get_transform().get_transform_matrix();
-    //Have to update VP every frame due to camera being movable
-    if (is_free) {
-      V = free_cam.get_view();
-      P = free_cam.get_projection();
-    }
+    M = m.get_transform().get_transform_matrix();
     auto MVP = P * V * M;
 
     // Set MVP matrix uniform
@@ -280,12 +334,21 @@ bool render() {
     glUniform1i(eff.get_uniform_location("dissolve_enabled"), dissolve_enabled);
     glUniform1i(eff.get_uniform_location("texture_exists"), texture_exists);
     glUniform1i(eff.get_uniform_location("tex"), 0);
-    glUniform3fv(eff.get_uniform_location("eye_pos"), 1, value_ptr(free_cam.get_position()));
-    glUniform1f(eff.get_uniform_location("ambient_intensity"), 0.1);
+    glUniform3fv(eff.get_uniform_location("eye_pos"), 1, value_ptr(cam_ref->get_position()));
+    glUniform1f(eff.get_uniform_location("ambient_intensity"), 0.075);
 
     renderer::render(m);
   }
 
+  renderer::set_render_target();
+  renderer::bind(vignette_eff);
+  MVP = mat4(1.0);
+  glUniformMatrix4fv(vignette_eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
+  renderer::bind(frame.get_frame(), 0);
+  glUniform1i(vignette_eff.get_uniform_location("frame"), 0);
+  glUniform2fv(vignette_eff.get_uniform_location("res"), 1, value_ptr(vec2(1600, 900)));
+
+  renderer::render(screen_quad);
   return true;
 }
 
@@ -293,7 +356,7 @@ void main() {
   //MSAA set to 8 samples
   glfwWindowHint(GLFW_SAMPLES, 8);
   // Create application
-  app application("Raish Allan Computer Graphics Coursework Part 1");
+  app application("Raish Allan Computer Graphics Coursework Part 2");
   // Set load content, update and render methods
   application.set_load_content(load_content);
   application.set_initialise(initialise);
