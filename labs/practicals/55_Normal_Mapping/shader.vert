@@ -38,11 +38,8 @@ void main() {
   tex_coord_out = tex_coord_in;
   // Transform normal
   transformed_normal = N * normal;
-
-  // *********************************
   // Transform tangent
-
+  tangent_out = N * tangent;
   // Transform binormal
-
-  // *********************************
+  binormal_out = N * binormal;
 }

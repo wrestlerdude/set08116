@@ -35,8 +35,6 @@ void main()
     transformed_normal = N * normal;
     // Pass through texture coordinate
     tex_coord_out = tex_coord_in;
-    // *********************************
     // Transform position into light space
-
-    // *********************************
+    vertex_light = lightMVP * vec4(position, 1.0);
 }

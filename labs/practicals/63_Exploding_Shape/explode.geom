@@ -22,14 +22,12 @@ void main() {
   vec3 face_normal = normalize(cross(V1, V0));
 
   for (int i = 0; i < 3; i++) {
-    // *********************************
     // Change triangle position += vec4(face_normal, 0.0) * explode_factor
-
+    gl_Position = gl_in[i].gl_Position + vec4(face_normal, 0.0) * explode_factor;
     //Colour the vertex with the normal
-
+    colour_out = vec4(1, 0, 0, 1);
     // Emit Vertex
-
-    // *********************************
+    EmitVertex();
   }
   // End Primitive
   EndPrimitive();

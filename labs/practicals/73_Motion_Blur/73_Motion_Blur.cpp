@@ -32,17 +32,17 @@ bool initialise() {
 bool load_content() {
   // *********************************
   // Create 2 frame buffers - use screen width and height
-
-
-
+  frames[0] = frame_buffer(renderer::get_screen_width(), renderer::get_screen_height());
+  frames[1] = frame_buffer(renderer::get_screen_width(), renderer::get_screen_height());
   // Create a temp framebuffer
-
+  temp_frame = frame_buffer(renderer::get_screen_width(), renderer::get_screen_height());
   // Create screen quad
-
-
-
-
-
+  vector<vec3> positions{ vec3(-1.0f, -1.0f, 0.0f), vec3(1.0f, -1.0f, 0.0f), vec3(-1.0f, 1.0f, 0.0f),
+    vec3(1.0f, 1.0f, 0.0f) };
+  vector<vec2> tex_coords{ vec2(0.0, 0.0), vec2(1.0f, 0.0f), vec2(0.0f, 1.0f), vec2(1.0f, 1.0f) };
+  screen_quad.set_type(GL_TRIANGLE_STRIP);
+  screen_quad.add_buffer(positions, BUFFER_INDEXES::POSITION_BUFFER);
+  screen_quad.add_buffer(tex_coords, BUFFER_INDEXES::TEXTURE_COORDS_0);
 
   // *********************************
 
@@ -219,10 +219,10 @@ bool render() {
   // !!!!!!!!!!!!!!! FIRST PASS !!!!!!!!!!!!!!!!
   // *********************************
   // Set render target to temp frame
-
+  renderer::set_render_target(temp_frame);
   // Clear frame
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-  // *********************************
   // Render meshes
   for (auto &e : meshes) {
     auto m = e.second;
@@ -260,40 +260,39 @@ bool render() {
   // !!!!!!!!!!!!!!! SECOND PASS !!!!!!!!!!!!!!!!
   // *********************************
   // Set render target to current frame
-
+  renderer::set_render_target(frames[current_frame]);
   // Clear frame
-
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
   // Bind motion blur effect
-
-  // MVP is now the identity matrix
-
+  renderer::bind(motion_blur);
+  //MVP is now the identity matrix
+  mat4 MVP = mat4(1.0f);
   // Set MVP matrix uniform
-
+  glUniformMatrix4fv(motion_blur.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
   // Bind tempframe to TU 0.
-
+  renderer::bind(temp_frame.get_frame(), 0);
   // Bind frames[(current_frame + 1) % 2] to TU 1.
-
+  renderer::bind(frames[(current_frame + 1) % 2].get_frame(), 1);
   // Set tex uniforms
-
-
+  glUniform1i(motion_blur.get_uniform_location("tex"), 0);
+  glUniform1i(motion_blur.get_uniform_location("previous_frame"), 1);
   // Set blend factor (0.9f)
-
+  glUniform1f(motion_blur.get_uniform_location("blend_factor"), 0.9);
   // Render screen quad
-
+  renderer::render(screen_quad);
 
   // !!!!!!!!!!!!!!! SCREEN PASS !!!!!!!!!!!!!!!!
-
   // Set render target back to the screen
-
-
+  renderer::set_render_target();
+  renderer::bind(tex_eff);
   // Set MVP matrix uniform
-
+  glUniformMatrix4fv(tex_eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
   // Bind texture from frame buffer
-
+  renderer::bind(frames[current_frame].get_frame(), 2);
   // Set the uniform
-
+  glUniform1i(tex_eff.get_uniform_location("tex"), 2);
   // Render the screen quad
-
+  renderer::render(screen_quad);
   // *********************************
   return true;
 }

@@ -78,7 +78,7 @@ bool load_content() {
   glGenBuffers(2, particle_buffers_vbo);
   // *********************************
   // Place initial particle data in buffer 1
-
+  
 
 
   // Fill space with blank data in buffer 2

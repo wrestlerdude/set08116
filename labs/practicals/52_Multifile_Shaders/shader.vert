@@ -25,10 +25,9 @@ void main()
 {
   // Calculate screen position
   gl_Position = MVP * vec4(position, 1.0);
-  // *********************************
   // Output other values to fragment shader
+  vertex_position = (M * vec4(position, 1.0)).xyz;
+  transformed_normal = N * normal;
+  tex_coord_out = tex_coord_in;
 
-
-
-  // *********************************
 }

@@ -53,14 +53,13 @@ layout(location = 4) in vec3 binormal;
 layout(location = 0) out vec4 colour;
 
 void main() {
-  // *********************************
   // Sample texture
-
+  vec4 tex_colour = texture(tex, tex_coord);
   // Calculate view direction
-
+  vec3 view_dir = normalize(eye_pos - position);
   // Calculate normal from normal map
-
+  vec3 mapped_normal = calc_normal(normal, tangent, binormal, normal_map, tex_coord);
   // Calculate directional light
-
-  // *********************************
+  colour += calculate_direction(light, mat, mapped_normal, view_dir, tex_colour);
+  colour.w = 1;
 }

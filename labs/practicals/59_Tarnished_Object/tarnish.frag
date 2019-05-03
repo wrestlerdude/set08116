@@ -24,7 +24,7 @@ void main()
 	// **********************
 	vec4 tex_sample = texture(tex, tex_coord);
 	// ******************************************************
-	// Final colour is product ot environment map and tarnish
+	// Final colour is product of environment map and tarnish
 	// ******************************************************
 	colour = environment_sample * tex_sample;
 }

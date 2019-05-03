@@ -31,19 +31,17 @@ bool initialise() {
 bool load_content() {
   // *********************************
   // Create 2 frame buffers - use screen width and height
-
-
-
+  temp_frames[0] = frame_buffer(renderer::get_screen_width(), renderer::get_screen_height());
+  temp_frames[1] = frame_buffer(renderer::get_screen_width(), renderer::get_screen_height());
   // Create a first_pass frame
-
+  first_pass = frame_buffer(renderer::get_screen_width(), renderer::get_screen_height());
   // Create screen quad
-
-
-
-
-
-
-  // *********************************
+  vector<vec3> positions{ vec3(-1.0f, -1.0f, 0.0f), vec3(1.0f, -1.0f, 0.0f), vec3(-1.0f, 1.0f, 0.0f),
+    vec3(1.0f, 1.0f, 0.0f) };
+  vector<vec2> tex_coords{ vec2(0.0, 0.0), vec2(1.0f, 0.0f), vec2(0.0f, 1.0f), vec2(1.0f, 1.0f) };
+  screen_quad.set_type(GL_TRIANGLE_STRIP);
+  screen_quad.add_buffer(positions, BUFFER_INDEXES::POSITION_BUFFER);
+  screen_quad.add_buffer(tex_coords, BUFFER_INDEXES::TEXTURE_COORDS_0);
 
   // Create plane mesh
   meshes["plane"] = mesh(geometry_builder::create_plane());
@@ -213,8 +211,9 @@ bool render() {
   // !!!!!!!!!!!!!!! FIRST PASS !!!!!!!!!!!!!!!!
   // *********************************
   // Set render target to first_pass
-
+  renderer::set_render_target(first_pass);
   // Clear frame
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
   // *********************************
 
@@ -259,20 +258,20 @@ bool render() {
 
   // *********************************
   // Perform blur twice
-
+  for (int i = 0; i < 2; i++) {
     // Set render target to temp_frames[i]
-
+    renderer::set_render_target(temp_frames[i]);
     // Clear frame
-
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     // Bind motion blur effect
-
-    // MVP is now the identity matrix
-
+    renderer::bind(blur);
+    //MVP is now the identity matrix
+    mat4 MVP = mat4(1.0f);
     // Set MVP matrix uniform
-
+    glUniformMatrix4fv(blur.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));
     // Bind frames
-
-
+    renderer::bind(temp_frames[i].get_frame(), 0);
+    glUniform1i(blur.get_uniform_location("tex"), 0);
     // Set inverse width
 
     // Set inverse height
@@ -280,7 +279,7 @@ bool render() {
     // Render screen quad
 
     // Set last pass to this pass
-
+  }
 
 
   // !!!!!!!!!!!!!!! SCREEN PASS !!!!!!!!!!!!!!!!
