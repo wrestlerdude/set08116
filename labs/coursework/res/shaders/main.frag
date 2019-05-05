@@ -40,9 +40,11 @@ uniform float dissolve_factor;
 uniform sampler2D tex;
 uniform sampler2D dissolve;
 uniform sampler2D shadow_map[4];
+uniform sampler2D normal_map;
+uniform samplerCube cubemap;
 
-uniform bool texture_exists;
-uniform bool dissolve_enabled;
+uniform bool env_map;
+uniform bool normal_b;
 
 uniform spot_light spots[4];
 uniform point_light points[5];
@@ -50,10 +52,14 @@ uniform material mat;
 
 uniform vec3 eye_pos;
 
+
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
-layout(location = 2) in vec2 tex_coord;
+layout(location = 2) in vec3 tex_coord;
 layout(location = 3) in vec4 light_space_pos[4];
+layout(location = 7) in vec3 tangent;
+layout(location = 8) in vec3 binormal;
+
 
 layout(location = 0) out vec4 frag_colour;
 
@@ -65,30 +71,30 @@ vec4 calculate_spot(in spot_light spot, in material mat, in vec3 position,
 
 float calculate_shadow(in sampler2D shadow_map, in vec4 light_space_pos);
 
-void main() {
-  //Dissolve calculation
-  if (dissolve_enabled) {
-    vec4 dissolve_v = texture(dissolve, tex_coord);
-    if (dissolve_v[0] > dissolve_factor)
-      discard;
-  }
+vec3 calc_normal(in vec3 normal, in vec3 tangent, in vec3 binormal, in sampler2D normal_map, in vec2 tex_coord);
 
+void main() {
   vec4 tex_colour;
-  if (texture_exists)
-    tex_colour = texture(tex, tex_coord);
+  if (env_map)
+    tex_colour = texture(cubemap, tex_coord);
   else
-    //Normally full white but in current scene only untextured thing is the amethyst
-    tex_colour = vec4(1, 0, 1, 1);
+    tex_colour = texture(tex, tex_coord.xy);
 
   vec3 view_dir = normalize(eye_pos - position);
   
+  vec3 mapped_normal;
+  if (normal_b)
+    mapped_normal = calc_normal(normal, tangent, binormal, normal_map, tex_coord.xy);
+  else
+    mapped_normal = normal;
+
   //Phong point lights
   for (int i = 0; i < 5; i++)
-    frag_colour += calculate_point(points[i], mat, position, normal, view_dir, tex_colour);
+    frag_colour += calculate_point(points[i], mat, position, mapped_normal, view_dir, tex_colour);
   
   //Phong spot lights
   for (int i = 0; i < 4; i++)
-    frag_colour += calculate_spot(spots[i], mat, position, normal, view_dir, tex_colour, ambient_intensity);
+    frag_colour += calculate_spot(spots[i], mat, position, mapped_normal, view_dir, tex_colour, ambient_intensity);
 
   float shade;
   for (int i = 0; i < 4; i++) {

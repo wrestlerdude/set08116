@@ -9,7 +9,7 @@ using namespace glm;
 map<string, mesh> meshes;
 mesh skybox;
 cubemap cube_map;
-array<texture, 5> textures;
+array<texture, 6> textures;
 vector<spot_light> spots(4);
 vector<point_light> points(5);
 vector<shadow_map> shadows(4);
@@ -53,7 +53,7 @@ bool load_content() {
   skybox.get_transform().scale = vec3(100, 100, 100);
   
   meshes["warp_stone"] = mesh(geometry_builder::create_box());
-  meshes["dissolve_stone"] = mesh(geometry_builder::create_sphere(50, 50));
+  meshes["dissolve_stone"] = mesh(geometry_builder::create_box());
   meshes["pedestal"] = mesh(geometry("res/models/pedestal.obj"));
   meshes["lamp"] = mesh(geometry("res/models/spotlight.obj"));
   meshes["skeleton"] = mesh(geometry("res/models/skeleton.obj"));
@@ -64,14 +64,14 @@ bool load_content() {
   meshes["amethyst"].get_transform().position = vec3(-48, 0, 0);
   meshes["amethyst"].get_transform().scale = vec3(2.5, 2.5, 2.5);
   meshes["dissolve_stone"].get_transform().position = vec3(-24, 0, 0);
-  meshes["dissolve_stone"].get_transform().scale = vec3(2, 2, 2);
+  meshes["dissolve_stone"].get_transform().scale = vec3(4, 4, 4);
   meshes["skeleton"].get_transform().position = vec3(-72, -5, 0);
   meshes["skeleton"].get_transform().scale = vec3(1.4, 1.4, 1.4);
   meshes["pedestal"].get_transform().position = vec3(0, -5, 0);
   meshes["pedestal"].get_transform().scale = vec3(0.3, 0.3, 0.3);
 
-  meshes["warp_stone"].get_material().set_shininess(35);
-  meshes["dissolve_stone"].get_material().set_shininess(45);
+  meshes["warp_stone"].get_material().set_shininess(3);
+  meshes["dissolve_stone"].get_material().set_shininess(1.5);
   meshes["pedestal"].get_material().set_shininess(10);
   meshes["skeleton"].get_material().set_shininess(5);
   meshes["amethyst"].get_material().set_shininess(2);
@@ -99,15 +99,12 @@ bool load_content() {
     mat.set_emissive(vec4(0, 0, 0, 1));
     mat.set_specular(vec4(1, 1, 1, 1));
   }
-  
-  //Custom light specular for the dissolve_stone
-  meshes["dissolve_stone"].get_material().set_specular(vec4(0, 0.35, 0, 1));
 
   //Placement and initial values of lights
   seperation[0] = 0;
   for (size_t i = 0; i < 4; i++) {
     spots[i].set_position(vec3(seperation[0], 13.5, 0));
-    spots[i].set_light_colour(vec4(1, 1, 0.7, 1));
+    spots[i].set_light_colour(vec4(1, 1, 0.85, 1));
     spots[i].set_direction(vec3(0, -1, 0));
     spots[i].set_range(20);
     spots[i].set_power(10);
@@ -128,7 +125,7 @@ bool load_content() {
 
   // Load in shaders
   eff.add_shader("res/shaders/main.vert", GL_VERTEX_SHADER);
-  eff.add_shader(vector<string>{"res/shaders/main.frag", "res/shaders/point.frag", "res/shaders/spot.frag", "res/shaders/shadow.frag"}, GL_FRAGMENT_SHADER);
+  eff.add_shader(vector<string>{"res/shaders/main.frag", "res/shaders/point.frag", "res/shaders/spot.frag", "res/shaders/shadow.frag", "res/shaders/normal.frag"}, GL_FRAGMENT_SHADER);
   sky_eff.add_shader("res/shaders/skybox.vert", GL_VERTEX_SHADER);
   sky_eff.add_shader("res/shaders/skybox.frag", GL_FRAGMENT_SHADER);
   vignette_eff.add_shader("res/shaders/basic_textured.vert", GL_VERTEX_SHADER);
@@ -149,11 +146,12 @@ bool load_content() {
   //Marble texture
   textures[1] = texture("res/textures/stone.jpg", true, true);
   //Blue stone texture
-  textures[2] = texture("res/textures/blue-stone.jpg", true, true);
+  textures[2] = texture("res/textures/158.jpg", true, true);
+  textures[3] = texture("res/textures/158_norm.jpg", true, true);
   //Spotlight model texture
-  textures[3] = texture("res/textures/rusty-light.jpg");
+  textures[4] = texture("res/textures/rusty-light.jpg", true, true);
   //Bone texture
-  textures[4] = texture("res/textures/bone.png");
+  textures[5] = texture("res/textures/bone.png");
 
   array<string, 6> filenames = { "res/textures/miramar_ft.png", "res/textures/miramar_bk.png", "res/textures/miramar_up.png",
                                 "res/textures/miramar_dn.png", "res/textures/miramar_rt.png", "res/textures/miramar_lf.png" };
@@ -237,6 +235,7 @@ bool update(float delta_time) {
   meshes["warp_stone"].get_transform().rotate(vec3(quarter_pi<float>(), quarter_pi<float>(), 0.0f) * delta_time);
   //Rotate amethyst stone
   meshes["amethyst"].get_transform().rotate(vec3(0, half_pi<float>(), 0.0f) * delta_time);
+  meshes["dissolve_stone"].get_transform().rotate(vec3(0.0, half_pi<float>(), 0.0) * delta_time);
   //Change colour diffuse of skeleton, wave range 0 to 1
   meshes["skeleton"].get_material().set_diffuse(vec4(0.5 * sinf(4 * run_time) + 0.5,
                                                      0.5 * cosf(5 * run_time) + 0.5,
@@ -273,8 +272,8 @@ bool render() {
   /*
     SHADOW MAP RENDER
   */
-  //zNear 2 to increase depth buffer precision, FOV of 30 degrees matches pedastel perfectly.
-  mat4 LightProjectionMat = perspective<float>(0.523599f, renderer::get_screen_aspect(), 0.2f, 1000.0f);
+  //zNear 4 to increase depth buffer precision, zFar 20 to prevent clipping with no acne, FOV of 30 degrees matches pedastel perfectly.
+  mat4 LightProjectionMat = perspective<float>(0.523599f, renderer::get_screen_aspect(), 4.0f, 20.0f);
   glCullFace(GL_FRONT);
   for (size_t i = 0; i < shadows.size(); i++) {
     renderer::set_render_target(shadows[i]);
@@ -350,34 +349,44 @@ bool render() {
     }
 
     //Bind texture to renderer and pass to shader
-    bool texture_exists = true;
+    bool env_map = false;
+    bool normal_b = false;
     if (e.first == "warp_stone")
       renderer::bind(textures[0], 0);
     else if (e.first == "dissolve_stone") {
       renderer::bind(textures[2], 0);
+      renderer::bind(textures[3], 6);
+      normal_b = true;
     }
     else if (e.first.find("pedestal") != string::npos)
       renderer::bind(textures[1], 0);
     else if (e.first.find("lamp") != string::npos)
-      renderer::bind(textures[3], 0);
-    else if (e.first == "skeleton")
       renderer::bind(textures[4], 0);
-    else
-      texture_exists = false;
+    else if (e.first == "skeleton")
+      renderer::bind(textures[5], 0);
+    else if (e.first == "amethyst") {
+      renderer::bind(cube_map, 5);
+      glUniform1i(eff.get_uniform_location("cubemap"), 5);
+      env_map = true;
+    }
+
+    glUniform1i(eff.get_uniform_location("env_map"), env_map);
+    glUniform1i(eff.get_uniform_location("normal_b"), normal_b);
 
     renderer::bind(m.get_material(), "mat");
     renderer::bind(spots, "spots");
     renderer::bind(points, "points");
 
-    glUniform1i(eff.get_uniform_location("texture_exists"), texture_exists);
     glUniform1i(eff.get_uniform_location("tex"), 0);
     glUniform3fv(eff.get_uniform_location("eye_pos"), 1, value_ptr(cam_ref->get_position()));
-    glUniform1f(eff.get_uniform_location("ambient_intensity"), 0.05);
+    glUniform1f(eff.get_uniform_location("ambient_intensity"), 0.075);
 
     for (int i = 0; i < 4; i++) {
       renderer::bind(shadows[i].buffer->get_depth(), i+1);
       glUniform1i(eff.get_uniform_location("shadow_map[" + to_string(i) + "]"), i+1);
     }
+
+    glUniform1i(eff.get_uniform_location("normal_map"), 6);
 
     renderer::render(m);
   }
