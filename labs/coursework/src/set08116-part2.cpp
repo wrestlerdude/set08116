@@ -53,7 +53,7 @@ bool load_content() {
 
   skybox = mesh(geometry_builder::create_box());
   skybox.get_transform().scale = vec3(100, 100, 100);
-
+  
   meshes["warp_stone"] = mesh(geometry_builder::create_box());
   meshes["dissolve_stone"] = mesh(geometry_builder::create_sphere(50, 50));
   meshes["pedestal"] = mesh(geometry("res/models/pedestal.obj"));
@@ -108,11 +108,11 @@ bool load_content() {
   //Placement and initial values of lights
   seperation[0] = 0;
   for (size_t i = 0; i < 4; i++) {
-    spots[i].set_position(vec3(seperation[0], 15, 0));
+    spots[i].set_position(vec3(seperation[0], 13.5, 0));
     spots[i].set_light_colour(vec4(1, 1, 0.7, 1));
     spots[i].set_direction(vec3(0, -1, 0));
-    spots[i].set_range(50);
-    spots[i].set_power(10);
+    spots[i].set_range(20);
+    spots[i].set_power(5);
     points[i].set_position(vec3(seperation[0], 13.5, 0.5));
     points[i].set_light_colour(vec4(1, 1, 0.7, 1));
     points[i].set_range(4);
@@ -131,8 +131,9 @@ bool load_content() {
   sky_eff.add_shader("res/shaders/skybox.frag", GL_FRAGMENT_SHADER);
   vignette_eff.add_shader("res/shaders/basic_textured.vert", GL_VERTEX_SHADER);
   vignette_eff.add_shader("res/shaders/vignette.frag", GL_FRAGMENT_SHADER);
-  shadow_eff.add_shader("res/shaders/shadow_spot.vert", GL_VERTEX_SHADER);
-  shadow_eff.add_shader("res/shaders/shadow_spot.frag", GL_FRAGMENT_SHADER);
+  //Possibly link more basic renders?
+  shadow_eff.add_shader("res/shaders/basic_colour.vert", GL_VERTEX_SHADER);
+  shadow_eff.add_shader("res/shaders/basic_colour.frag", GL_FRAGMENT_SHADER);
 
   // Build effect
   eff.build();
@@ -216,6 +217,9 @@ bool update(float delta_time) {
     target_cam.set_position(vec3(0, 2.5, 15));
     target_cam.set_target(vec3(0, 0, 0));
   }
+  //testing
+  if (glfwGetKey(renderer::get_window(), 'L'))
+    shadow.buffer->save("test.png");
   
   //Used so that there is delay between switches -> so switching every frame doesn't happen
   static float old_run_time;
@@ -262,11 +266,22 @@ bool update(float delta_time) {
 }
 
 bool render() {
+  camera* cam_ref;
+  //Optimization for using target cam
+  mat4 M, V, P, MVP;
+  if (!is_free)
+    cam_ref = &target_cam;
+  else
+    cam_ref = &free_cam;
+
   /*
+    SHADOW MAP RENDER
+  */
   renderer::set_render_target(shadow);
   glClear(GL_DEPTH_BUFFER_BIT);
   glCullFace(GL_FRONT);
-  mat4 LightProjectionMat = perspective<float>(90.f, renderer::get_screen_aspect(), 0.1f, 1000.f);
+  //zNear 0.6 to increase depth buffer precision
+  mat4 LightProjectionMat = perspective<float>(50.0f, renderer::get_screen_aspect(), 0.65f, 1000.f);
 
   renderer::bind(shadow_eff);
   for (auto &e : meshes) {
@@ -281,20 +296,15 @@ bool render() {
       1,                                      // Number of values - 1 mat4
       GL_FALSE,                               // Transpose the matrix?
       value_ptr(MVP));                        // Pointer to matrix data
-  // Render mesh
+    // Render mesh
     renderer::render(m);
   }
+
+  /*
+    SKYBOX RENDER
   */
   renderer::set_render_target(frame);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-  camera* cam_ref;
-  //Optimization for using target cam
-  mat4 M, V, P, MVP;
-  if (!is_free)
-    cam_ref = &target_cam;
-  else
-    cam_ref = &free_cam;
 
   V = cam_ref->get_view();
   P = cam_ref->get_projection();
@@ -311,16 +321,20 @@ bool render() {
   glUniform1i(sky_eff.get_uniform_location("cube_map"), 0);
   renderer::render(skybox);
 
+  /*
+    MAIN SCENE RENDER
+  */
+
   glEnable(GL_DEPTH_TEST);
   glDepthMask(GL_TRUE);
   glCullFace(GL_BACK);
 
+  // Bind effect
+  renderer::bind(eff);
+
   // Render meshes
   for (auto &e : meshes) {
     auto m = e.second;
-
-    // Bind effect
-    renderer::bind(eff);
 
     // Create MVP matrix
     M = m.get_transform().get_transform_matrix();
@@ -333,13 +347,8 @@ bool render() {
     // Set M matrix uniform - convert vertices to world space
     glUniformMatrix4fv(eff.get_uniform_location("M"), 1, GL_FALSE, value_ptr(M));
 
-    /*
-    auto lM = m.get_transform().get_transform_matrix();
-    auto lV = shadow.get_view();
-    auto lP = LightProjectionMat;
-    auto lightMVP = lP * lV * lM;
+    auto lightMVP = LightProjectionMat * shadow.get_view() * M;
     glUniformMatrix4fv(eff.get_uniform_location("lightMVP"), 1, GL_FALSE, value_ptr(lightMVP));
-    */
 
     //Bind texture to renderer and pass to shader
     bool dissolve_enabled = false;
@@ -371,16 +380,17 @@ bool render() {
     glUniform1i(eff.get_uniform_location("texture_exists"), texture_exists);
     glUniform1i(eff.get_uniform_location("tex"), 0);
     glUniform3fv(eff.get_uniform_location("eye_pos"), 1, value_ptr(cam_ref->get_position()));
-    glUniform1f(eff.get_uniform_location("ambient_intensity"), 0.075);
+    glUniform1f(eff.get_uniform_location("ambient_intensity"), 0.05);
 
-    /*
     renderer::bind(shadow.buffer->get_depth(), 1);
     glUniform1i(eff.get_uniform_location("shadow_map"), 1);
-    */
 
     renderer::render(m);
   }
 
+  /*
+    POST-PROCESS RENDER
+  */
   renderer::set_render_target();
   renderer::bind(vignette_eff);
   MVP = mat4(1.0);

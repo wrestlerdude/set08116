@@ -80,8 +80,6 @@ void main() {
     //Normally full white but in current scene only untextured thing is the amethyst
     tex_colour = vec4(1, 0, 1, 1);
 
-  float shade = calculate_shadow(shadow_map, light_space_pos);
-
   vec3 view_dir = normalize(eye_pos - position);
   
   //Phong point lights
@@ -91,6 +89,9 @@ void main() {
   //Phong spot lights
   for (int i = 0; i < 4; i++)
     frag_colour += calculate_spot(spots[i], mat, position, normal, view_dir, tex_colour, ambient_intensity);
+
+    
+  float shade = calculate_shadow(shadow_map, light_space_pos);
 
   frag_colour *= shade;
   frag_colour.w = 1;
