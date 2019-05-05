@@ -223,7 +223,7 @@ bool update(float delta_time) {
   }
   //testing
   if (glfwGetKey(renderer::get_window(), 'L'))
-    shadows[2].buffer->save("test.png");
+    shadows[3].buffer->save("test.png");
   
   //Used so that there is delay between switches -> so switching every frame doesn't happen
   static float old_run_time;
@@ -278,14 +278,12 @@ bool render() {
   /*
     SHADOW MAP RENDER
   */
-
-  //zNear 0.6 to increase depth buffer precision, FOV of 45 degrees matches pedastel perfectly.
-  mat4 LightProjectionMat = perspective<float>(0.785398f, renderer::get_screen_aspect(), 1.0f, 1000.0f);
+  //zNear 2 to increase depth buffer precision, FOV of 30 degrees matches pedastel perfectly.
+  mat4 LightProjectionMat = perspective<float>(0.523599f, renderer::get_screen_aspect(), 2.0f, 1000.0f);
   glCullFace(GL_FRONT);
   for (size_t i = 0; i < shadows.size(); i++) {
     renderer::set_render_target(shadows[i]);
     glClear(GL_DEPTH_BUFFER_BIT);
-
     renderer::bind(shadow_eff);
 
     for (auto &e : meshes) {
