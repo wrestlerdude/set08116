@@ -12,13 +12,13 @@ cubemap cube_map;
 array<texture, 6> textures;
 vector<spot_light> spots(4);
 vector<point_light> points(5);
+vector<shadow_map> shadows(4);
 effect eff, sky_eff, vignette_eff, shadow_eff;
 free_camera free_cam;
 target_camera target_cam;
 vec2 uv_scroll;
 frame_buffer frame;
 geometry screen_quad;
-shadow_map shadow;
 double run_time = 0.0;
 double cursor_x = 0.0;
 double cursor_y = 0.0;
@@ -42,7 +42,6 @@ bool initialise() {
 bool load_content() {
   // Create frame buffer - use screen width and height
   frame = frame_buffer(renderer::get_screen_width(), renderer::get_screen_height());
-  shadow = shadow_map(renderer::get_screen_width(), renderer::get_screen_height());
   // Create screen quad
   vector<vec3> positions{ vec3(-1.0f, -1.0f, 0.0f), vec3(1.0f, -1.0f, 0.0f), vec3(-1.0f, 1.0f, 0.0f),
                          vec3(1.0f, 1.0f, 0.0f) };
@@ -117,6 +116,10 @@ bool load_content() {
     points[i].set_light_colour(vec4(1, 1, 0.7, 1));
     points[i].set_range(4);
     seperation[0] -= 24;
+
+    shadows[i] = shadow_map(renderer::get_screen_width(), renderer::get_screen_height());
+    shadows[i].light_position = spots[i].get_position();
+    shadows[i].light_dir = spots[i].get_direction();
   }
 
   //5th point is amethyst sparkle
@@ -166,6 +169,7 @@ bool load_content() {
   // 1.222 ~ around 70 degrees fov
   free_cam.set_projection(1.222, renderer::get_screen_aspect(), 0.1, 1000);
   target_cam.set_projection(1.222, renderer::get_screen_aspect(), 0.1, 1000);
+
   return true;
 }
 
@@ -219,7 +223,7 @@ bool update(float delta_time) {
   }
   //testing
   if (glfwGetKey(renderer::get_window(), 'L'))
-    shadow.buffer->save("test.png");
+    shadows[2].buffer->save("test.png");
   
   //Used so that there is delay between switches -> so switching every frame doesn't happen
   static float old_run_time;
@@ -259,9 +263,6 @@ bool update(float delta_time) {
   //Scrolling the dissolve_stone's texture
   uv_scroll += vec2(0, delta_time * 0.05);
 
-  shadow.light_position = spots[2].get_position();
-  shadow.light_dir = spots[2].get_direction();
-
   return true;
 }
 
@@ -277,19 +278,20 @@ bool render() {
   /*
     SHADOW MAP RENDER
   */
-  renderer::set_render_target(shadow);
+  renderer::set_render_target(shadows[2]);
   glClear(GL_DEPTH_BUFFER_BIT);
   glCullFace(GL_FRONT);
   //zNear 0.6 to increase depth buffer precision
   mat4 LightProjectionMat = perspective<float>(50.0f, renderer::get_screen_aspect(), 0.65f, 1000.f);
 
   renderer::bind(shadow_eff);
+
   for (auto &e : meshes) {
     auto m = e.second;
     // Create MVP matrix
     auto M = m.get_transform().get_transform_matrix();
     // View matrix taken from shadow map
-    auto V = shadow.get_view();
+    auto V = shadows[2].get_view();
     auto MVP = LightProjectionMat * V * M;
     // Set MVP matrix uniform
     glUniformMatrix4fv(shadow_eff.get_uniform_location("MVP"), // Location of uniform
@@ -347,7 +349,7 @@ bool render() {
     // Set M matrix uniform - convert vertices to world space
     glUniformMatrix4fv(eff.get_uniform_location("M"), 1, GL_FALSE, value_ptr(M));
 
-    auto lightMVP = LightProjectionMat * shadow.get_view() * M;
+    auto lightMVP = LightProjectionMat * shadows[2].get_view() * M;
     glUniformMatrix4fv(eff.get_uniform_location("lightMVP"), 1, GL_FALSE, value_ptr(lightMVP));
 
     //Bind texture to renderer and pass to shader
@@ -382,7 +384,7 @@ bool render() {
     glUniform3fv(eff.get_uniform_location("eye_pos"), 1, value_ptr(cam_ref->get_position()));
     glUniform1f(eff.get_uniform_location("ambient_intensity"), 0.05);
 
-    renderer::bind(shadow.buffer->get_depth(), 1);
+    renderer::bind(shadows[2].buffer->get_depth(), 1);
     glUniform1i(eff.get_uniform_location("shadow_map"), 1);
 
     renderer::render(m);
