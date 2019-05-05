@@ -278,30 +278,32 @@ bool render() {
   /*
     SHADOW MAP RENDER
   */
-  renderer::set_render_target(shadows[2]);
-  glClear(GL_DEPTH_BUFFER_BIT);
+
+  //zNear 0.6 to increase depth buffer precision, FOV of 45 degrees matches pedastel perfectly.
+  mat4 LightProjectionMat = perspective<float>(0.785398f, renderer::get_screen_aspect(), 1.0f, 1000.0f);
   glCullFace(GL_FRONT);
-  //zNear 0.6 to increase depth buffer precision
-  mat4 LightProjectionMat = perspective<float>(50.0f, renderer::get_screen_aspect(), 0.65f, 1000.f);
+  for (size_t i = 0; i < shadows.size(); i++) {
+    renderer::set_render_target(shadows[i]);
+    glClear(GL_DEPTH_BUFFER_BIT);
 
-  renderer::bind(shadow_eff);
+    renderer::bind(shadow_eff);
 
-  for (auto &e : meshes) {
-    auto m = e.second;
-    // Create MVP matrix
-    auto M = m.get_transform().get_transform_matrix();
-    // View matrix taken from shadow map
-    auto V = shadows[2].get_view();
-    auto MVP = LightProjectionMat * V * M;
-    // Set MVP matrix uniform
-    glUniformMatrix4fv(shadow_eff.get_uniform_location("MVP"), // Location of uniform
-      1,                                      // Number of values - 1 mat4
-      GL_FALSE,                               // Transpose the matrix?
-      value_ptr(MVP));                        // Pointer to matrix data
-    // Render mesh
-    renderer::render(m);
+    for (auto &e : meshes) {
+      auto m = e.second;
+      // Create MVP matrix
+      auto M = m.get_transform().get_transform_matrix();
+      // View matrix taken from shadow map
+      auto V = shadows[i].get_view();
+      auto MVP = LightProjectionMat * V * M;
+      // Set MVP matrix uniform
+      glUniformMatrix4fv(shadow_eff.get_uniform_location("MVP"), // Location of uniform
+        1,                                      // Number of values - 1 mat4
+        GL_FALSE,                               // Transpose the matrix?
+        value_ptr(MVP));                        // Pointer to matrix data
+      // Render mesh
+      renderer::render(m);
+    }
   }
-
   /*
     SKYBOX RENDER
   */
