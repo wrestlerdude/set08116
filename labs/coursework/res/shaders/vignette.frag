@@ -3,8 +3,8 @@
 uniform sampler2D frame;
 uniform vec2 res;
 
-#define RADIUS 0.80
-#define SOFTNESS 0.65
+#define RADIUS 0.75
+#define SOFTNESS 0.60
 
 layout(location = 0) in vec2 tex_coord;
 
