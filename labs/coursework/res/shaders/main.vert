@@ -5,6 +5,7 @@ uniform mat4 M;
 uniform mat3 N;
 uniform bool dissolve_enabled;
 uniform vec2 UV_SCROLL;
+uniform mat4 lightMVP;
 
 layout (location = 0) in vec3 position;
 layout (location = 2) in vec3 normal;
@@ -13,6 +14,7 @@ layout (location = 10) in vec2 tex_coord_in;
 layout(location = 0) out vec3 vertex_position;
 layout(location = 1) out vec3 transformed_normal;
 layout(location = 2) out vec2 tex_coord_out;
+layout(location = 3) out vec4 vertex_light;
 
 void main()
 {
@@ -24,4 +26,6 @@ void main()
     tex_coord_out = tex_coord_in + UV_SCROLL;
   else
     tex_coord_out = tex_coord_in;
+  
+  vertex_light = lightMVP * vec4(position, 1.0);
 }

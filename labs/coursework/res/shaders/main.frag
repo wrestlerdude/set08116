@@ -39,6 +39,7 @@ uniform float dissolve_factor;
 
 uniform sampler2D tex;
 uniform sampler2D dissolve;
+uniform sampler2D shadow_map;
 
 uniform bool texture_exists;
 uniform bool dissolve_enabled;
@@ -52,6 +53,7 @@ uniform vec3 eye_pos;
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
 layout(location = 2) in vec2 tex_coord;
+layout(location = 3) in vec4 light_space_pos;
 
 layout(location = 0) out vec4 frag_colour;
 
@@ -60,6 +62,8 @@ vec4 calculate_point(in point_light point, in material mat, in vec3 position,
 
 vec4 calculate_spot(in spot_light spot, in material mat, in vec3 position,
                 in vec3 normal, in vec3 view_dir, in vec4 tex_colour, in float ambient_intensity);
+
+float calculate_shadow(in sampler2D shadow_map, in vec4 light_space_pos);
 
 void main() {
   //Dissolve calculation
@@ -76,6 +80,8 @@ void main() {
     //Normally full white but in current scene only untextured thing is the amethyst
     tex_colour = vec4(1, 0, 1, 1);
 
+  float shade = calculate_shadow(shadow_map, light_space_pos);
+
   vec3 view_dir = normalize(eye_pos - position);
   
   //Phong point lights
@@ -86,5 +92,6 @@ void main() {
   for (int i = 0; i < 4; i++)
     frag_colour += calculate_spot(spots[i], mat, position, normal, view_dir, tex_colour, ambient_intensity);
 
+  frag_colour *= shade;
   frag_colour.w = 1;
 }

@@ -12,12 +12,13 @@ cubemap cube_map;
 array<texture, 6> textures;
 vector<spot_light> spots(4);
 vector<point_light> points(5);
-effect eff, sky_eff, vignette_eff;
+effect eff, sky_eff, vignette_eff, shadow_eff;
 free_camera free_cam;
 target_camera target_cam;
 vec2 uv_scroll;
 frame_buffer frame;
 geometry screen_quad;
+shadow_map shadow;
 double run_time = 0.0;
 double cursor_x = 0.0;
 double cursor_y = 0.0;
@@ -41,6 +42,7 @@ bool initialise() {
 bool load_content() {
   // Create frame buffer - use screen width and height
   frame = frame_buffer(renderer::get_screen_width(), renderer::get_screen_height());
+  shadow = shadow_map(renderer::get_screen_width(), renderer::get_screen_height());
   // Create screen quad
   vector<vec3> positions{ vec3(-1.0f, -1.0f, 0.0f), vec3(1.0f, -1.0f, 0.0f), vec3(-1.0f, 1.0f, 0.0f),
                          vec3(1.0f, 1.0f, 0.0f) };
@@ -125,18 +127,19 @@ bool load_content() {
 
   // Load in shaders
   eff.add_shader("res/shaders/main.vert", GL_VERTEX_SHADER);
-  eff.add_shader("res/shaders/main.frag", GL_FRAGMENT_SHADER);
-  eff.add_shader("res/shaders/point.frag", GL_FRAGMENT_SHADER);
-  eff.add_shader("res/shaders/spot.frag", GL_FRAGMENT_SHADER);
+  eff.add_shader(vector<string>{"res/shaders/main.frag", "res/shaders/point.frag", "res/shaders/spot.frag", "res/shaders/shadow.frag"}, GL_FRAGMENT_SHADER);
   sky_eff.add_shader("res/shaders/skybox.vert", GL_VERTEX_SHADER);
   sky_eff.add_shader("res/shaders/skybox.frag", GL_FRAGMENT_SHADER);
   vignette_eff.add_shader("res/shaders/basic_textured.vert", GL_VERTEX_SHADER);
   vignette_eff.add_shader("res/shaders/vignette.frag", GL_FRAGMENT_SHADER);
+  shadow_eff.add_shader("res/shaders/shadow_spot.vert", GL_VERTEX_SHADER);
+  shadow_eff.add_shader("res/shaders/shadow_spot.frag", GL_FRAGMENT_SHADER);
 
   // Build effect
   eff.build();
   sky_eff.build();
   vignette_eff.build();
+  shadow_eff.build();
 
   //Apply textures with Anisotropic filtering and generate mipmaps
   //Wood texture
@@ -145,7 +148,7 @@ bool load_content() {
   textures[1] = texture("res/textures/stone.jpg", true, true);
   //Blue stone texture
   textures[2] = texture("res/textures/blue-stone.jpg", true, true);
-  //Blend map for linen red
+  //Blend map
   textures[3] = texture("res/textures/passive-blend.png");
   //Spotlight model texture
   textures[4] = texture("res/textures/rusty-light.jpg");
@@ -253,10 +256,35 @@ bool update(float delta_time) {
   //Scrolling the dissolve_stone's texture
   uv_scroll += vec2(0, delta_time * 0.05);
 
+  shadow.light_position = spots[2].get_position();
+  shadow.light_dir = spots[2].get_direction();
+
   return true;
 }
 
 bool render() {
+  renderer::set_render_target(shadow);
+  glClear(GL_DEPTH_BUFFER_BIT);
+  glCullFace(GL_FRONT);
+  mat4 LightProjectionMat = perspective<float>(90.f, renderer::get_screen_aspect(), 0.1f, 1000.f);
+
+  renderer::bind(shadow_eff);
+  for (auto &e : meshes) {
+    auto m = e.second;
+    // Create MVP matrix
+    auto M = m.get_transform().get_transform_matrix();
+    // View matrix taken from shadow map
+    auto V = shadow.get_view();
+    auto MVP = LightProjectionMat * V * M;
+    // Set MVP matrix uniform
+    glUniformMatrix4fv(shadow_eff.get_uniform_location("MVP"), // Location of uniform
+      1,                                      // Number of values - 1 mat4
+      GL_FALSE,                               // Transpose the matrix?
+      value_ptr(MVP));                        // Pointer to matrix data
+  // Render mesh
+    renderer::render(m);
+  }
+
   renderer::set_render_target(frame);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
@@ -273,7 +301,6 @@ bool render() {
 
   glDisable(GL_DEPTH_TEST);
   glDepthMask(GL_FALSE);
-  glCullFace(GL_FRONT);
 
   renderer::bind(sky_eff);
   M = skybox.get_transform().get_transform_matrix();
@@ -304,6 +331,12 @@ bool render() {
     glUniformMatrix3fv(eff.get_uniform_location("N"), 1, GL_FALSE, value_ptr(m.get_transform().get_normal_matrix()));
     // Set M matrix uniform - convert vertices to world space
     glUniformMatrix4fv(eff.get_uniform_location("M"), 1, GL_FALSE, value_ptr(M));
+
+    auto lM = m.get_transform().get_transform_matrix();
+    auto lV = shadow.get_view();
+    auto lP = LightProjectionMat;
+    auto lightMVP = lP * lV * lM;
+    glUniformMatrix4fv(eff.get_uniform_location("lightMVP"), 1, GL_FALSE, value_ptr(lightMVP));
 
     //Bind texture to renderer and pass to shader
     bool dissolve_enabled = false;
@@ -336,6 +369,9 @@ bool render() {
     glUniform1i(eff.get_uniform_location("tex"), 0);
     glUniform3fv(eff.get_uniform_location("eye_pos"), 1, value_ptr(cam_ref->get_position()));
     glUniform1f(eff.get_uniform_location("ambient_intensity"), 0.075);
+
+    renderer::bind(shadow.buffer->get_depth(), 1);
+    glUniform1i(eff.get_uniform_location("shadow_map"), 1);
 
     renderer::render(m);
   }

@@ -94,7 +94,7 @@ bool update(float delta_time) {
   // Update the shadow map light_position from the spot light
   shadow.light_position = spot.get_position();
   // do the same for light_dir property
-  shadow.light_position = spot.get_position();
+  shadow.light_dir = spot.get_direction();
 
   // Press s to save
   if (glfwGetKey(renderer::get_window(), 'S') == GLFW_PRESS)
