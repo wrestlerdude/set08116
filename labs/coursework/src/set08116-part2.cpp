@@ -51,7 +51,6 @@ bool load_content() {
   screen_quad.add_buffer(tex_coords, BUFFER_INDEXES::TEXTURE_COORDS_0);
   screen_quad.set_type(GL_TRIANGLE_STRIP);
 
-
   skybox = mesh(geometry_builder::create_box());
   skybox.get_transform().scale = vec3(100, 100, 100);
 
@@ -113,7 +112,7 @@ bool load_content() {
     spots[i].set_light_colour(vec4(1, 1, 0.7, 1));
     spots[i].set_direction(vec3(0, -1, 0));
     spots[i].set_range(50);
-    spots[i].set_power(40);
+    spots[i].set_power(10);
     points[i].set_position(vec3(seperation[0], 13.5, 0.5));
     points[i].set_light_colour(vec4(1, 1, 0.7, 1));
     points[i].set_range(4);
@@ -263,6 +262,7 @@ bool update(float delta_time) {
 }
 
 bool render() {
+  /*
   renderer::set_render_target(shadow);
   glClear(GL_DEPTH_BUFFER_BIT);
   glCullFace(GL_FRONT);
@@ -284,7 +284,7 @@ bool render() {
   // Render mesh
     renderer::render(m);
   }
-
+  */
   renderer::set_render_target(frame);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
@@ -299,6 +299,7 @@ bool render() {
   V = cam_ref->get_view();
   P = cam_ref->get_projection();
 
+  glCullFace(GL_FRONT);
   glDisable(GL_DEPTH_TEST);
   glDepthMask(GL_FALSE);
 
@@ -332,11 +333,13 @@ bool render() {
     // Set M matrix uniform - convert vertices to world space
     glUniformMatrix4fv(eff.get_uniform_location("M"), 1, GL_FALSE, value_ptr(M));
 
+    /*
     auto lM = m.get_transform().get_transform_matrix();
     auto lV = shadow.get_view();
     auto lP = LightProjectionMat;
     auto lightMVP = lP * lV * lM;
     glUniformMatrix4fv(eff.get_uniform_location("lightMVP"), 1, GL_FALSE, value_ptr(lightMVP));
+    */
 
     //Bind texture to renderer and pass to shader
     bool dissolve_enabled = false;
@@ -370,8 +373,10 @@ bool render() {
     glUniform3fv(eff.get_uniform_location("eye_pos"), 1, value_ptr(cam_ref->get_position()));
     glUniform1f(eff.get_uniform_location("ambient_intensity"), 0.075);
 
+    /*
     renderer::bind(shadow.buffer->get_depth(), 1);
     glUniform1i(eff.get_uniform_location("shadow_map"), 1);
+    */
 
     renderer::render(m);
   }
