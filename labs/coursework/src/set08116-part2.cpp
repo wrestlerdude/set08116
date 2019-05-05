@@ -9,14 +9,13 @@ using namespace glm;
 map<string, mesh> meshes;
 mesh skybox;
 cubemap cube_map;
-array<texture, 6> textures;
+array<texture, 5> textures;
 vector<spot_light> spots(4);
 vector<point_light> points(5);
 vector<shadow_map> shadows(4);
 effect eff, sky_eff, vignette_eff, shadow_eff;
 free_camera free_cam;
 target_camera target_cam;
-vec2 uv_scroll;
 frame_buffer frame;
 geometry screen_quad;
 double run_time = 0.0;
@@ -111,7 +110,7 @@ bool load_content() {
     spots[i].set_light_colour(vec4(1, 1, 0.7, 1));
     spots[i].set_direction(vec3(0, -1, 0));
     spots[i].set_range(20);
-    spots[i].set_power(5);
+    spots[i].set_power(10);
     points[i].set_position(vec3(seperation[0], 13.5, 0.5));
     points[i].set_light_colour(vec4(1, 1, 0.7, 1));
     points[i].set_range(4);
@@ -151,12 +150,10 @@ bool load_content() {
   textures[1] = texture("res/textures/stone.jpg", true, true);
   //Blue stone texture
   textures[2] = texture("res/textures/blue-stone.jpg", true, true);
-  //Blend map
-  textures[3] = texture("res/textures/passive-blend.png");
   //Spotlight model texture
-  textures[4] = texture("res/textures/rusty-light.jpg");
+  textures[3] = texture("res/textures/rusty-light.jpg");
   //Bone texture
-  textures[5] = texture("res/textures/bone.png");
+  textures[4] = texture("res/textures/bone.png");
 
   array<string, 6> filenames = { "res/textures/miramar_ft.png", "res/textures/miramar_bk.png", "res/textures/miramar_up.png",
                                 "res/textures/miramar_dn.png", "res/textures/miramar_rt.png", "res/textures/miramar_lf.png" };
@@ -260,8 +257,6 @@ bool update(float delta_time) {
   }
 
   run_time += delta_time;
-  //Scrolling the dissolve_stone's texture
-  uv_scroll += vec2(0, delta_time * 0.05);
 
   return true;
 }
@@ -279,7 +274,7 @@ bool render() {
     SHADOW MAP RENDER
   */
   //zNear 2 to increase depth buffer precision, FOV of 30 degrees matches pedastel perfectly.
-  mat4 LightProjectionMat = perspective<float>(0.523599f, renderer::get_screen_aspect(), 2.0f, 1000.0f);
+  mat4 LightProjectionMat = perspective<float>(0.523599f, renderer::get_screen_aspect(), 0.2f, 1000.0f);
   glCullFace(GL_FRONT);
   for (size_t i = 0; i < shadows.size(); i++) {
     renderer::set_render_target(shadows[i]);
@@ -355,24 +350,18 @@ bool render() {
     }
 
     //Bind texture to renderer and pass to shader
-    bool dissolve_enabled = false;
     bool texture_exists = true;
     if (e.first == "warp_stone")
       renderer::bind(textures[0], 0);
     else if (e.first == "dissolve_stone") {
-      dissolve_enabled = true;
       renderer::bind(textures[2], 0);
-      renderer::bind(textures[3], 1);
-      glUniform1i(eff.get_uniform_location("dissolve"), 1);
-      glUniform1f(eff.get_uniform_location("dissolve_factor"), (0.6 * sinf(2 * run_time - 0.75)) + 0.8);
-      glUniform2fv(eff.get_uniform_location("UV_SCROLL"), 1, value_ptr(uv_scroll));
     }
     else if (e.first.find("pedestal") != string::npos)
       renderer::bind(textures[1], 0);
     else if (e.first.find("lamp") != string::npos)
-      renderer::bind(textures[4], 0);
+      renderer::bind(textures[3], 0);
     else if (e.first == "skeleton")
-      renderer::bind(textures[5], 0);
+      renderer::bind(textures[4], 0);
     else
       texture_exists = false;
 
@@ -380,7 +369,6 @@ bool render() {
     renderer::bind(spots, "spots");
     renderer::bind(points, "points");
 
-    glUniform1i(eff.get_uniform_location("dissolve_enabled"), dissolve_enabled);
     glUniform1i(eff.get_uniform_location("texture_exists"), texture_exists);
     glUniform1i(eff.get_uniform_location("tex"), 0);
     glUniform3fv(eff.get_uniform_location("eye_pos"), 1, value_ptr(cam_ref->get_position()));

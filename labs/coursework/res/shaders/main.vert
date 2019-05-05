@@ -3,8 +3,6 @@
 uniform mat4 MVP;
 uniform mat4 M;
 uniform mat3 N;
-uniform bool dissolve_enabled;
-uniform vec2 UV_SCROLL;
 uniform mat4 lightMVP[4];
 
 layout (location = 0) in vec3 position;
@@ -21,11 +19,7 @@ void main()
   gl_Position = MVP * vec4(position, 1);
   vertex_position = (M * vec4(position, 1)).xyz;
   transformed_normal = N * normal;
-
-  if (dissolve_enabled)  
-    tex_coord_out = tex_coord_in + UV_SCROLL;
-  else
-    tex_coord_out = tex_coord_in;
+  tex_coord_out = tex_coord_in;
   
   for (int i = 0; i < 4; i++)
     vertex_light[i] = lightMVP[i] * vec4(position, 1.0);
