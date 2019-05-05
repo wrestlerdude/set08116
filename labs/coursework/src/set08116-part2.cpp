@@ -9,10 +9,10 @@ using namespace glm;
 map<string, mesh> meshes;
 mesh skybox;
 cubemap cube_map;
-array<texture, 6> textures;
-vector<spot_light> spots(4);
-vector<point_light> points(5);
-vector<shadow_map> shadows(4);
+array<texture, 9> textures;
+vector<spot_light> spots(5);
+vector<point_light> points(6);
+vector<shadow_map> shadows(5);
 effect eff, sky_eff, vignette_eff, shadow_eff;
 free_camera free_cam;
 target_camera target_cam;
@@ -58,6 +58,7 @@ bool load_content() {
   meshes["lamp"] = mesh(geometry("res/models/spotlight.obj"));
   meshes["skeleton"] = mesh(geometry("res/models/skeleton.obj"));
   meshes["amethyst"] = mesh(geometry("res/models/amethyst.obj"));
+  meshes["parallax_stone"] = mesh(geometry_builder::create_box());
 
   meshes["lamp"].get_transform().position = vec3(0, 15, 0);
   meshes["lamp"].get_transform().scale = vec3(2, 2, 2);
@@ -69,19 +70,24 @@ bool load_content() {
   meshes["skeleton"].get_transform().scale = vec3(1.4, 1.4, 1.4);
   meshes["pedestal"].get_transform().position = vec3(0, -5, 0);
   meshes["pedestal"].get_transform().scale = vec3(0.3, 0.3, 0.3);
+  meshes["parallax_stone"].get_transform().scale = vec3(4, 4, 4);
+  meshes["parallax_stone"].get_transform().position = vec3(-96, 0, 0);
 
   meshes["warp_stone"].get_material().set_shininess(3);
   meshes["dissolve_stone"].get_material().set_shininess(1.5);
   meshes["pedestal"].get_material().set_shininess(10);
   meshes["skeleton"].get_material().set_shininess(5);
   meshes["amethyst"].get_material().set_shininess(2);
+  meshes["parallax_stone"].get_material().set_shininess(5);
 
   meshes["pedestal2"] = mesh(meshes["pedestal"]);
   meshes["pedestal3"] = mesh(meshes["pedestal"]);
   meshes["pedestal4"] = mesh(meshes["pedestal"]);
+  meshes["pedestal5"] = mesh(meshes["pedestal"]);
   meshes["lamp2"] = mesh(meshes["lamp"]);
   meshes["lamp3"] = mesh(meshes["lamp"]);
   meshes["lamp4"] = mesh(meshes["lamp"]);
+  meshes["lamp5"] = mesh(meshes["lamp"]);
 
   //Placement of pedastels and lamp models
   int seperation[2] = { 0 };
@@ -102,7 +108,7 @@ bool load_content() {
 
   //Placement and initial values of lights
   seperation[0] = 0;
-  for (size_t i = 0; i < 4; i++) {
+  for (size_t i = 0; i < 5; i++) {
     spots[i].set_position(vec3(seperation[0], 13.5, 0));
     spots[i].set_light_colour(vec4(1, 1, 0.85, 1));
     spots[i].set_direction(vec3(0, -1, 0));
@@ -118,10 +124,10 @@ bool load_content() {
     shadows[i].light_dir = spots[i].get_direction();
   }
 
-  //5th point is amethyst sparkle
-  points[4].set_light_colour(vec4(1, 0, 1, 1));
-  points[4].set_range(5);
-  points[4].set_position(vec3(-48, 2, 0));
+  //6th point is amethyst sparkle
+  points[5].set_light_colour(vec4(1, 0, 1, 1));
+  points[5].set_range(5);
+  points[5].set_position(vec3(-48, 2, 0));
 
   // Load in shaders
   eff.add_shader("res/shaders/main.vert", GL_VERTEX_SHADER);
@@ -145,13 +151,17 @@ bool load_content() {
   textures[0] = texture("res/textures/wood-squares.jpg", true, true);
   //Marble texture
   textures[1] = texture("res/textures/stone.jpg", true, true);
-  //Blue stone texture
+  //Metal floor texture
   textures[2] = texture("res/textures/158.jpg", true, true);
   textures[3] = texture("res/textures/158_norm.jpg", true, true);
   //Spotlight model texture
   textures[4] = texture("res/textures/rusty-light.jpg", true, true);
   //Bone texture
   textures[5] = texture("res/textures/bone.png");
+  //Brick textures
+  textures[6] = texture("res/textures/bricks2.jpg");
+  textures[7] = texture("res/textures/bricks2_normal.jpg");
+  textures[8] = texture("res/textures/bricks2_disp.jpg");
 
   array<string, 6> filenames = { "res/textures/miramar_ft.png", "res/textures/miramar_bk.png", "res/textures/miramar_up.png",
                                 "res/textures/miramar_dn.png", "res/textures/miramar_rt.png", "res/textures/miramar_lf.png" };
@@ -201,21 +211,26 @@ bool update(float delta_time) {
 
   //Target camera positioning
   if (glfwGetKey(renderer::get_window(), '1')) {
+    target_cam.set_position(vec3(-96, 2.5, 15));
+    target_cam.set_target(vec3(-96, 0, 0));
+  }
+  if (glfwGetKey(renderer::get_window(), '2')) {
     target_cam.set_position(vec3(-72, 2.5, 15));
     target_cam.set_target(vec3(-72, 0, 0));
   }
-  if (glfwGetKey(renderer::get_window(), '2')) {
+  if (glfwGetKey(renderer::get_window(), '3')) {
     target_cam.set_position(vec3(-48, 2.5, 15));
     target_cam.set_target(vec3(-48, 0, 0));
   }
-  if (glfwGetKey(renderer::get_window(), '3')) {
+  if (glfwGetKey(renderer::get_window(), '4')) {
     target_cam.set_position(vec3(-24, 2.5, 15));
     target_cam.set_target(vec3(-24, 0, 0));
   }
-  if (glfwGetKey(renderer::get_window(), '4')) {
+  if (glfwGetKey(renderer::get_window(), '5')) {
     target_cam.set_position(vec3(0, 2.5, 15));
     target_cam.set_target(vec3(0, 0, 0));
   }
+
   //testing
   if (glfwGetKey(renderer::get_window(), 'L'))
     shadows[3].buffer->save("test.png");
@@ -350,6 +365,7 @@ bool render() {
 
     //Bind texture to renderer and pass to shader
     bool env_map = false;
+    bool parallax = false;
     bool normal_b = false;
     if (e.first == "warp_stone")
       renderer::bind(textures[0], 0);
@@ -369,9 +385,16 @@ bool render() {
       glUniform1i(eff.get_uniform_location("cubemap"), 5);
       env_map = true;
     }
+    else if (e.first == "parallax_stone") {
+      renderer::bind(textures[6], 0);
+      renderer::bind(textures[7], 6);
+      renderer::bind(textures[8], 7);
+      parallax = true;
+    }
 
     glUniform1i(eff.get_uniform_location("env_map"), env_map);
     glUniform1i(eff.get_uniform_location("normal_b"), normal_b);
+    glUniform1i(eff.get_uniform_location("parallax"), parallax);
 
     renderer::bind(m.get_material(), "mat");
     renderer::bind(spots, "spots");
@@ -387,6 +410,8 @@ bool render() {
     }
 
     glUniform1i(eff.get_uniform_location("normal_map"), 6);
+    glUniform1i(eff.get_uniform_location("depth_map"), 7);
+    glUniform1f(eff.get_uniform_location("height_scale"), 1.0f);
 
     renderer::render(m);
   }

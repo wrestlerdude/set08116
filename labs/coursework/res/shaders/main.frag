@@ -99,9 +99,10 @@ void main() {
   float shade;
   for (int i = 0; i < 4; i++) {
     shade = calculate_shadow(shadow_map[i], light_space_pos[i]);
-    if (shade == 0.5)
+    if (shade < 1.0)
       break;
   }
+
   frag_colour *= shade;
   frag_colour.w = 1;
 }
