@@ -349,8 +349,10 @@ bool render() {
     // Set M matrix uniform - convert vertices to world space
     glUniformMatrix4fv(eff.get_uniform_location("M"), 1, GL_FALSE, value_ptr(M));
 
-    auto lightMVP = LightProjectionMat * shadows[2].get_view() * M;
-    glUniformMatrix4fv(eff.get_uniform_location("lightMVP"), 1, GL_FALSE, value_ptr(lightMVP));
+    for (int i = 0; i < 4; i++) {
+      mat4 lightMVP = LightProjectionMat * shadows[i].get_view() * M;
+      glUniformMatrix4fv(eff.get_uniform_location("lightMVP[" + to_string(i) + "]"), 1, GL_FALSE, value_ptr(lightMVP));
+    }
 
     //Bind texture to renderer and pass to shader
     bool dissolve_enabled = false;
@@ -384,8 +386,10 @@ bool render() {
     glUniform3fv(eff.get_uniform_location("eye_pos"), 1, value_ptr(cam_ref->get_position()));
     glUniform1f(eff.get_uniform_location("ambient_intensity"), 0.05);
 
-    renderer::bind(shadows[2].buffer->get_depth(), 1);
-    glUniform1i(eff.get_uniform_location("shadow_map"), 1);
+    for (int i = 0; i < 4; i++) {
+      renderer::bind(shadows[i].buffer->get_depth(), i+1);
+      glUniform1i(eff.get_uniform_location("shadow_map[" + to_string(i) + "]"), i+1);
+    }
 
     renderer::render(m);
   }

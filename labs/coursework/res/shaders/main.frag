@@ -39,7 +39,7 @@ uniform float dissolve_factor;
 
 uniform sampler2D tex;
 uniform sampler2D dissolve;
-uniform sampler2D shadow_map;
+uniform sampler2D shadow_map[4];
 
 uniform bool texture_exists;
 uniform bool dissolve_enabled;
@@ -53,7 +53,7 @@ uniform vec3 eye_pos;
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
 layout(location = 2) in vec2 tex_coord;
-layout(location = 3) in vec4 light_space_pos;
+layout(location = 3) in vec4 light_space_pos[4];
 
 layout(location = 0) out vec4 frag_colour;
 
@@ -90,9 +90,12 @@ void main() {
   for (int i = 0; i < 4; i++)
     frag_colour += calculate_spot(spots[i], mat, position, normal, view_dir, tex_colour, ambient_intensity);
 
-    
-  float shade = calculate_shadow(shadow_map, light_space_pos);
-
+  float shade;
+  for (int i = 0; i < 4; i++) {
+    shade = calculate_shadow(shadow_map[i], light_space_pos[i]);
+    if (shade == 0.5)
+      break;
+  }
   frag_colour *= shade;
   frag_colour.w = 1;
 }
