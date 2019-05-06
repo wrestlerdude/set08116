@@ -70,8 +70,8 @@ bool load_content() {
   meshes["skeleton"].get_transform().scale = vec3(1.4, 1.4, 1.4);
   meshes["pedestal"].get_transform().position = vec3(0, -5, 0);
   meshes["pedestal"].get_transform().scale = vec3(0.3, 0.3, 0.3);
-  meshes["parallax_stone"].get_transform().scale = vec3(4, 4, 4);
   meshes["parallax_stone"].get_transform().position = vec3(-96, 0, 0);
+  meshes["parallax_stone"].get_transform().scale = vec3(4, 4, 4);
 
   meshes["warp_stone"].get_material().set_shininess(3);
   meshes["dissolve_stone"].get_material().set_shininess(1.5);
@@ -108,7 +108,7 @@ bool load_content() {
 
   //Placement and initial values of lights
   seperation[0] = 0;
-  for (size_t i = 0; i < 5; i++) {
+  for (size_t i = 0; i < spots.size(); i++) {
     spots[i].set_position(vec3(seperation[0], 13.5, 0));
     spots[i].set_light_colour(vec4(1, 1, 0.85, 1));
     spots[i].set_direction(vec3(0, -1, 0));
@@ -131,7 +131,8 @@ bool load_content() {
 
   // Load in shaders
   eff.add_shader("res/shaders/main.vert", GL_VERTEX_SHADER);
-  eff.add_shader(vector<string>{"res/shaders/main.frag", "res/shaders/point.frag", "res/shaders/spot.frag", "res/shaders/shadow.frag", "res/shaders/normal.frag"}, GL_FRAGMENT_SHADER);
+  eff.add_shader(vector<string>{"res/shaders/main.frag", "res/shaders/point.frag", "res/shaders/spot.frag", "res/shaders/shadow.frag",
+                "res/shaders/normal.frag", "res/shaders/parallax.frag"}, GL_FRAGMENT_SHADER);
   sky_eff.add_shader("res/shaders/skybox.vert", GL_VERTEX_SHADER);
   sky_eff.add_shader("res/shaders/skybox.frag", GL_FRAGMENT_SHADER);
   vignette_eff.add_shader("res/shaders/basic_textured.vert", GL_VERTEX_SHADER);
@@ -159,7 +160,7 @@ bool load_content() {
   //Bone texture
   textures[5] = texture("res/textures/bone.png");
   //Brick textures
-  textures[6] = texture("res/textures/bricks2.jpg");
+  textures[6] = texture("res/textures/bricks2.jpg", true, true);
   textures[7] = texture("res/textures/bricks2_normal.jpg");
   textures[8] = texture("res/textures/bricks2_disp.jpg");
 
@@ -168,7 +169,7 @@ bool load_content() {
   cube_map = cubemap(filenames);
 
   // Set camera properties
-  free_cam.set_position(vec3(-35, 10, 40));
+  free_cam.set_position(vec3(-48, 10, 40));
   target_cam.set_position(vec3(-72, 2.5, 15));
   target_cam.set_target(vec3(-72, 0, 0));
   // 1.222 ~ around 70 degrees fov
@@ -233,7 +234,7 @@ bool update(float delta_time) {
 
   //testing
   if (glfwGetKey(renderer::get_window(), 'L'))
-    shadows[3].buffer->save("test.png");
+    shadows[4].buffer->save("test.png");
   
   //Used so that there is delay between switches -> so switching every frame doesn't happen
   static float old_run_time;
@@ -255,6 +256,7 @@ bool update(float delta_time) {
   meshes["skeleton"].get_material().set_diffuse(vec4(0.5 * sinf(4 * run_time) + 0.5,
                                                      0.5 * cosf(5 * run_time) + 0.5,
                                                      0.5 * sinf(1.25 * run_time) + 0.5, 1));
+  meshes["parallax_stone"].get_transform().rotate(vec3(0.0, quarter_pi<float>() / 2, 0.0) * delta_time);
   // Update the main camera
   if (is_free) {
     // Move free_cam
@@ -287,7 +289,7 @@ bool render() {
   /*
     SHADOW MAP RENDER
   */
-  //zNear 4 to increase depth buffer precision, zFar 20 to prevent clipping with no acne, FOV of 30 degrees matches pedastel perfectly.
+  //zNear 4 to increase depth buffer precision, zFar 20 to prevent clipping with no acne (no dynamic acne algorithm), FOV of 30 degrees matches pedastel perfectly.
   mat4 LightProjectionMat = perspective<float>(0.523599f, renderer::get_screen_aspect(), 4.0f, 20.0f);
   glCullFace(GL_FRONT);
   for (size_t i = 0; i < shadows.size(); i++) {
@@ -358,7 +360,7 @@ bool render() {
     // Set M matrix uniform - convert vertices to world space
     glUniformMatrix4fv(eff.get_uniform_location("M"), 1, GL_FALSE, value_ptr(M));
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < shadows.size(); i++) {
       mat4 lightMVP = LightProjectionMat * shadows[i].get_view() * M;
       glUniformMatrix4fv(eff.get_uniform_location("lightMVP[" + to_string(i) + "]"), 1, GL_FALSE, value_ptr(lightMVP));
     }
@@ -371,7 +373,7 @@ bool render() {
       renderer::bind(textures[0], 0);
     else if (e.first == "dissolve_stone") {
       renderer::bind(textures[2], 0);
-      renderer::bind(textures[3], 6);
+      renderer::bind(textures[3], 7);
       normal_b = true;
     }
     else if (e.first.find("pedestal") != string::npos)
@@ -381,14 +383,16 @@ bool render() {
     else if (e.first == "skeleton")
       renderer::bind(textures[5], 0);
     else if (e.first == "amethyst") {
-      renderer::bind(cube_map, 5);
-      glUniform1i(eff.get_uniform_location("cubemap"), 5);
+      renderer::bind(cube_map, 6);
+      glUniform1i(eff.get_uniform_location("cubemap"), 6);
       env_map = true;
     }
     else if (e.first == "parallax_stone") {
       renderer::bind(textures[6], 0);
-      renderer::bind(textures[7], 6);
-      renderer::bind(textures[8], 7);
+      renderer::bind(textures[7], 7);
+      renderer::bind(textures[8], 8);
+      glUniform1i(eff.get_uniform_location("depth_map"), 8);
+      glUniform1f(eff.get_uniform_location("height_scale"), 0.1f);
       parallax = true;
     }
 
@@ -404,14 +408,12 @@ bool render() {
     glUniform3fv(eff.get_uniform_location("eye_pos"), 1, value_ptr(cam_ref->get_position()));
     glUniform1f(eff.get_uniform_location("ambient_intensity"), 0.075);
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < shadows.size(); i++) {
       renderer::bind(shadows[i].buffer->get_depth(), i+1);
       glUniform1i(eff.get_uniform_location("shadow_map[" + to_string(i) + "]"), i+1);
     }
 
-    glUniform1i(eff.get_uniform_location("normal_map"), 6);
-    glUniform1i(eff.get_uniform_location("depth_map"), 7);
-    glUniform1f(eff.get_uniform_location("height_scale"), 1.0f);
+    glUniform1i(eff.get_uniform_location("normal_map"), 7);
 
     renderer::render(m);
   }

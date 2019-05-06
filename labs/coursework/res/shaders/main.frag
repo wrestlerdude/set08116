@@ -36,30 +36,31 @@ struct material {
 
 uniform float ambient_intensity;
 uniform float dissolve_factor;
+uniform float height_scale;
 
 uniform sampler2D tex;
 uniform sampler2D dissolve;
-uniform sampler2D shadow_map[4];
+uniform sampler2D shadow_map[5];
 uniform sampler2D normal_map;
+uniform sampler2D depth_map;
 uniform samplerCube cubemap;
 
 uniform bool env_map;
 uniform bool normal_b;
+uniform bool parallax;
 
-uniform spot_light spots[4];
-uniform point_light points[5];
+uniform spot_light spots[5];
+uniform point_light points[6];
 uniform material mat;
 
 uniform vec3 eye_pos;
 
-
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
 layout(location = 2) in vec3 tex_coord;
-layout(location = 3) in vec4 light_space_pos[4];
-layout(location = 7) in vec3 tangent;
-layout(location = 8) in vec3 binormal;
-
+layout(location = 3) in vec4 light_space_pos[5];
+layout(location = 8) in vec3 tangent;
+layout(location = 9) in vec3 binormal;
 
 layout(location = 0) out vec4 frag_colour;
 
@@ -71,33 +72,41 @@ vec4 calculate_spot(in spot_light spot, in material mat, in vec3 position,
 
 float calculate_shadow(in sampler2D shadow_map, in vec4 light_space_pos);
 
+void steep_parallax_depth(inout vec3 tex_coord, in vec3 view_dir, sampler2D depth_map, float height_scale);
+
 vec3 calc_normal(in vec3 normal, in vec3 tangent, in vec3 binormal, in sampler2D normal_map, in vec2 tex_coord);
 
 void main() {
+  vec3 view_dir = normalize(eye_pos - position);
+  vec3 new_tex_coord;
+  new_tex_coord = tex_coord;
+
+  if (parallax)
+    steep_parallax_depth(new_tex_coord, view_dir, depth_map, height_scale);
+
   vec4 tex_colour;
   if (env_map)
-    tex_colour = texture(cubemap, tex_coord);
+    tex_colour = texture(cubemap, new_tex_coord);
   else
-    tex_colour = texture(tex, tex_coord.xy);
+    tex_colour = texture(tex, new_tex_coord.xy);
 
-  vec3 view_dir = normalize(eye_pos - position);
-  
   vec3 mapped_normal;
-  if (normal_b)
-    mapped_normal = calc_normal(normal, tangent, binormal, normal_map, tex_coord.xy);
+  if (normal_b || parallax)
+    mapped_normal = calc_normal(normal, tangent, binormal, normal_map, new_tex_coord.xy);
   else
     mapped_normal = normal;
 
   //Phong point lights
-  for (int i = 0; i < 5; i++)
+  for (int i = 0; i < points.length(); i++)
     frag_colour += calculate_point(points[i], mat, position, mapped_normal, view_dir, tex_colour);
   
   //Phong spot lights
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < spots.length(); i++)
     frag_colour += calculate_spot(spots[i], mat, position, mapped_normal, view_dir, tex_colour, ambient_intensity);
-
+  
+  //Must be a more efficient way?
   float shade;
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < shadow_map.length(); i++) {
     shade = calculate_shadow(shadow_map[i], light_space_pos[i]);
     if (shade < 1.0)
       break;

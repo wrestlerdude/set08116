@@ -1,11 +1,12 @@
 #version 440
 
 uniform mat4 MVP;
-uniform mat4 lightMVP[4];
+uniform mat4 lightMVP[5];
 uniform mat4 M;
 uniform mat3 N;
 uniform vec3 eye_pos;
 uniform bool env_map;
+uniform bool parallax;
 uniform bool normal_b;
 
 layout (location = 0) in vec3 position;
@@ -17,9 +18,9 @@ layout (location = 10) in vec2 tex_coord_in;
 layout(location = 0) out vec3 vertex_position;
 layout(location = 1) out vec3 transformed_normal;
 layout(location = 2) out vec3 tex_coord_out;
-layout(location = 3) out vec4 vertex_light[4];
-layout(location = 7) out vec3 transformed_tangent;
-layout(location = 8) out vec3 transformed_binormal;
+layout(location = 3) out vec4 vertex_light[5];
+layout(location = 8) out vec3 transformed_tangent;
+layout(location = 9) out vec3 transformed_binormal;
 
 void main()
 {
@@ -34,10 +35,10 @@ void main()
   else
     tex_coord_out = vec3(tex_coord_in, 0);
   
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < lightMVP.length(); i++)
     vertex_light[i] = lightMVP[i] * vec4(position, 1.0);
 
-    if (normal_b) {
+    if (normal_b || parallax) {
       transformed_binormal = N * binormal;
       transformed_tangent = N * tangent;
     }
