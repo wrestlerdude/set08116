@@ -70,8 +70,8 @@ bool load_content() {
   meshes["skeleton"].get_transform().scale = vec3(1.4, 1.4, 1.4);
   meshes["pedestal"].get_transform().position = vec3(0, -5, 0);
   meshes["pedestal"].get_transform().scale = vec3(0.3, 0.3, 0.3);
-  meshes["parallax_stone"].get_transform().position = vec3(-96, 0, 0);
-  meshes["parallax_stone"].get_transform().scale = vec3(4, 4, 4);
+  meshes["parallax_stone"].get_transform().position = vec3(-96, -1.1, 0);
+  meshes["parallax_stone"].get_transform().scale = vec3(6.5, 6.5, 6.5);
 
   meshes["warp_stone"].get_material().set_shininess(3);
   meshes["dissolve_stone"].get_material().set_shininess(1.5);
@@ -160,9 +160,9 @@ bool load_content() {
   //Bone texture
   textures[5] = texture("res/textures/bone.png");
   //Brick textures
-  textures[6] = texture("res/textures/bricks2.jpg", true, true);
-  textures[7] = texture("res/textures/bricks2_normal.jpg");
-  textures[8] = texture("res/textures/bricks2_disp.jpg");
+  textures[6] = texture("res/textures/Colored_Pencils_002_basecolor.jpg", true, true);
+  textures[7] = texture("res/textures/Colored_Pencils_002_normal.jpg");
+  textures[8] = texture("res/textures/Colored_Pencils_002_height.png");
 
   array<string, 6> filenames = { "res/textures/miramar_ft.png", "res/textures/miramar_bk.png", "res/textures/miramar_up.png",
                                 "res/textures/miramar_dn.png", "res/textures/miramar_rt.png", "res/textures/miramar_lf.png" };
@@ -170,8 +170,8 @@ bool load_content() {
 
   // Set camera properties
   free_cam.set_position(vec3(-48, 10, 40));
-  target_cam.set_position(vec3(-72, 2.5, 15));
-  target_cam.set_target(vec3(-72, 0, 0));
+  target_cam.set_position(vec3(-96, 2.5, 15));
+  target_cam.set_target(vec3(-96, 0, 0));
   // 1.222 ~ around 70 degrees fov
   free_cam.set_projection(1.222, renderer::get_screen_aspect(), 0.1, 1000);
   target_cam.set_projection(1.222, renderer::get_screen_aspect(), 0.1, 1000);
@@ -202,17 +202,17 @@ bool update(float delta_time) {
   // Use keyboard to move thefree_camera - WSAD
   vec3 movement = vec3(0, 0, 0);
   if (glfwGetKey(renderer::get_window(), 'W'))
-    movement.z += 0.25;
+    movement.z += 0.5;
   if (glfwGetKey(renderer::get_window(), 'S'))
-    movement.z -= 0.25;
+    movement.z -= 0.5;
   if (glfwGetKey(renderer::get_window(), 'A'))
-    movement.x -= 0.25;
+    movement.x -= 0.5;
   if (glfwGetKey(renderer::get_window(), 'D'))
-    movement.x += 0.25;
+    movement.x += 0.5;
 
   //Target camera positioning
   if (glfwGetKey(renderer::get_window(), '1')) {
-    target_cam.set_position(vec3(-96, 2.5, 15));
+    target_cam.set_position(vec3(-96, 1.5, 12.5));
     target_cam.set_target(vec3(-96, 0, 0));
   }
   if (glfwGetKey(renderer::get_window(), '2')) {
@@ -231,10 +231,6 @@ bool update(float delta_time) {
     target_cam.set_position(vec3(0, 2.5, 15));
     target_cam.set_target(vec3(0, 0, 0));
   }
-
-  //testing
-  if (glfwGetKey(renderer::get_window(), 'L'))
-    shadows[4].buffer->save("test.png");
   
   //Used so that there is delay between switches -> so switching every frame doesn't happen
   static float old_run_time;
@@ -256,7 +252,7 @@ bool update(float delta_time) {
   meshes["skeleton"].get_material().set_diffuse(vec4(0.5 * sinf(4 * run_time) + 0.5,
                                                      0.5 * cosf(5 * run_time) + 0.5,
                                                      0.5 * sinf(1.25 * run_time) + 0.5, 1));
-  meshes["parallax_stone"].get_transform().rotate(vec3(0.0, quarter_pi<float>() / 2, 0.0) * delta_time);
+  meshes["parallax_stone"].get_transform().rotate(vec3(0.0, quarter_pi<float>(), 0.0) * delta_time);
   // Update the main camera
   if (is_free) {
     // Move free_cam
@@ -289,8 +285,8 @@ bool render() {
   /*
     SHADOW MAP RENDER
   */
-  //zNear 4 to increase depth buffer precision, zFar 20 to prevent clipping with no acne (no dynamic acne algorithm), FOV of 30 degrees matches pedastel perfectly.
-  mat4 LightProjectionMat = perspective<float>(0.523599f, renderer::get_screen_aspect(), 4.0f, 20.0f);
+  //zNear 4 to increase depth buffer precision, zFar 20 to prevent clipping with no acne (no dynamic acne algorithm), FOV of 45 degrees matches pedastel perfectly.
+  mat4 LightProjectionMat = perspective<float>(0.959931f, renderer::get_screen_aspect(), 4.0f, 20.0f);
   glCullFace(GL_FRONT);
   for (size_t i = 0; i < shadows.size(); i++) {
     renderer::set_render_target(shadows[i]);
@@ -392,7 +388,7 @@ bool render() {
       renderer::bind(textures[7], 7);
       renderer::bind(textures[8], 8);
       glUniform1i(eff.get_uniform_location("depth_map"), 8);
-      glUniform1f(eff.get_uniform_location("height_scale"), 0.1f);
+      glUniform1f(eff.get_uniform_location("height_scale"), 0.5f);
       parallax = true;
     }
 

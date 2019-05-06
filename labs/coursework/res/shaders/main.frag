@@ -72,7 +72,7 @@ vec4 calculate_spot(in spot_light spot, in material mat, in vec3 position,
 
 float calculate_shadow(in sampler2D shadow_map, in vec4 light_space_pos);
 
-void steep_parallax_depth(inout vec3 tex_coord, in vec3 view_dir, sampler2D depth_map, float height_scale);
+void parallax_occulsion(inout vec3 tex_coord, in vec3 view_dir, sampler2D depth_map, float height_scale);
 
 vec3 calc_normal(in vec3 normal, in vec3 tangent, in vec3 binormal, in sampler2D normal_map, in vec2 tex_coord);
 
@@ -82,7 +82,7 @@ void main() {
   new_tex_coord = tex_coord;
 
   if (parallax)
-    steep_parallax_depth(new_tex_coord, view_dir, depth_map, height_scale);
+    parallax_occulsion(new_tex_coord, view_dir, depth_map, height_scale);
 
   vec4 tex_colour;
   if (env_map)
