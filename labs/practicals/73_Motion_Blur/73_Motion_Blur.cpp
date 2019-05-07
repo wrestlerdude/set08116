@@ -277,7 +277,7 @@ bool render() {
   glUniform1i(motion_blur.get_uniform_location("tex"), 0);
   glUniform1i(motion_blur.get_uniform_location("previous_frame"), 1);
   // Set blend factor (0.9f)
-  glUniform1f(motion_blur.get_uniform_location("blend_factor"), 0.9);
+  glUniform1f(motion_blur.get_uniform_location("blend_factor"), 0.2);
   // Render screen quad
   renderer::render(screen_quad);
 

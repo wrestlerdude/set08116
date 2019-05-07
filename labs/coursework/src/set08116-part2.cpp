@@ -25,7 +25,7 @@ bool is_free = true;
 
 bool initialise() {
   //Set resolution to 1600x900
-  renderer::set_screen_dimensions(1600, 900);
+  renderer::set_screen_dimensions(1920, 1080);
   //Capture cursor
   glfwSetInputMode(renderer::get_window(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwGetCursorPos(renderer::get_window(), &cursor_x, &cursor_y);
@@ -58,7 +58,7 @@ bool load_content() {
   meshes["lamp"] = mesh(geometry("res/models/spotlight.obj"));
   meshes["skeleton"] = mesh(geometry("res/models/skeleton.obj"));
   meshes["amethyst"] = mesh(geometry("res/models/amethyst.obj"));
-  meshes["parallax_stone"] = mesh(geometry_builder::create_box());
+  meshes["parallax_stone"] = mesh(geometry_builder::create_cylinder(50, 50));
 
   meshes["lamp"].get_transform().position = vec3(0, 15, 0);
   meshes["lamp"].get_transform().scale = vec3(2, 2, 2);
@@ -70,15 +70,15 @@ bool load_content() {
   meshes["skeleton"].get_transform().scale = vec3(1.4, 1.4, 1.4);
   meshes["pedestal"].get_transform().position = vec3(0, -5, 0);
   meshes["pedestal"].get_transform().scale = vec3(0.3, 0.3, 0.3);
-  meshes["parallax_stone"].get_transform().position = vec3(-96, -1.1, 0);
-  meshes["parallax_stone"].get_transform().scale = vec3(6.5, 6.5, 6.5);
+  meshes["parallax_stone"].get_transform().position = vec3(-96, 0, 0);
+  meshes["parallax_stone"].get_transform().scale = vec3(7, 7, 7);
 
   meshes["warp_stone"].get_material().set_shininess(3);
   meshes["dissolve_stone"].get_material().set_shininess(1.5);
   meshes["pedestal"].get_material().set_shininess(10);
   meshes["skeleton"].get_material().set_shininess(5);
   meshes["amethyst"].get_material().set_shininess(2);
-  meshes["parallax_stone"].get_material().set_shininess(5);
+  meshes["parallax_stone"].get_material().set_shininess(10);
 
   meshes["pedestal2"] = mesh(meshes["pedestal"]);
   meshes["pedestal3"] = mesh(meshes["pedestal"]);
@@ -388,7 +388,7 @@ bool render() {
       renderer::bind(textures[7], 7);
       renderer::bind(textures[8], 8);
       glUniform1i(eff.get_uniform_location("depth_map"), 8);
-      glUniform1f(eff.get_uniform_location("height_scale"), 0.5f);
+      glUniform1f(eff.get_uniform_location("height_scale"), 0.7f);
       parallax = true;
     }
 
@@ -430,8 +430,8 @@ bool render() {
 }
 
 void main() {
-  //MSAA set to 8 samples
-  glfwWindowHint(GLFW_SAMPLES, 8);
+  //MSAA set to 16 samples
+  glfwWindowHint(GLFW_SAMPLES, 16);
   // Create application
   app application("Raish Allan Computer Graphics Coursework Part 2");
   // Set load content, update and render methods
