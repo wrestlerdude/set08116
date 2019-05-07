@@ -49,23 +49,26 @@ bool load_content() {
   screen_quad.add_buffer(tex_coords, BUFFER_INDEXES::TEXTURE_COORDS_0);
   screen_quad.set_type(GL_TRIANGLE_STRIP);
 
+  //Create skybox
   skybox = mesh(geometry_builder::create_box());
   skybox.get_transform().scale = vec3(100, 100, 100);
   
+  //Generate meshes
   meshes["warp_stone"] = mesh(geometry_builder::create_box());
-  meshes["dissolve_stone"] = mesh(geometry_builder::create_box());
+  meshes["normal_stone"] = mesh(geometry_builder::create_box());
   meshes["pedestal"] = mesh(geometry("res/models/pedestal.obj"));
   meshes["lamp"] = mesh(geometry("res/models/spotlight.obj"));
   meshes["skeleton"] = mesh(geometry("res/models/skeleton.obj"));
   meshes["amethyst"] = mesh(geometry("res/models/amethyst.obj"));
   meshes["parallax_stone"] = mesh(geometry_builder::create_cylinder(50, 50));
 
+  //Set transforms
   meshes["lamp"].get_transform().position = vec3(0, 15, 0);
   meshes["lamp"].get_transform().scale = vec3(2, 2, 2);
   meshes["amethyst"].get_transform().position = vec3(-48, 0, 0);
   meshes["amethyst"].get_transform().scale = vec3(2.5, 2.5, 2.5);
-  meshes["dissolve_stone"].get_transform().position = vec3(-24, 0, 0);
-  meshes["dissolve_stone"].get_transform().scale = vec3(4, 4, 4);
+  meshes["normal_stone"].get_transform().position = vec3(-24, 0, 0);
+  meshes["normal_stone"].get_transform().scale = vec3(4, 4, 4);
   meshes["skeleton"].get_transform().position = vec3(-72, -5, 0);
   meshes["skeleton"].get_transform().scale = vec3(1.4, 1.4, 1.4);
   meshes["pedestal"].get_transform().position = vec3(0, -5, 0);
@@ -73,13 +76,15 @@ bool load_content() {
   meshes["parallax_stone"].get_transform().position = vec3(-96, 0, 0);
   meshes["parallax_stone"].get_transform().scale = vec3(7, 7, 7);
 
+  //Set shininesses 
   meshes["warp_stone"].get_material().set_shininess(3);
-  meshes["dissolve_stone"].get_material().set_shininess(1.5);
+  meshes["normal_stone"].get_material().set_shininess(1.5);
   meshes["pedestal"].get_material().set_shininess(10);
   meshes["skeleton"].get_material().set_shininess(5);
   meshes["amethyst"].get_material().set_shininess(2);
   meshes["parallax_stone"].get_material().set_shininess(10);
 
+  //Call to copy constructor
   meshes["pedestal2"] = mesh(meshes["pedestal"]);
   meshes["pedestal3"] = mesh(meshes["pedestal"]);
   meshes["pedestal4"] = mesh(meshes["pedestal"]);
@@ -130,14 +135,17 @@ bool load_content() {
   points[5].set_position(vec3(-48, 2, 0));
 
   // Load in shaders
+  //Main effect
   eff.add_shader("res/shaders/main.vert", GL_VERTEX_SHADER);
   eff.add_shader(vector<string>{"res/shaders/main.frag", "res/shaders/point.frag", "res/shaders/spot.frag", "res/shaders/shadow.frag",
                 "res/shaders/normal.frag", "res/shaders/parallax.frag"}, GL_FRAGMENT_SHADER);
+  //Skybox effect
   sky_eff.add_shader("res/shaders/skybox.vert", GL_VERTEX_SHADER);
   sky_eff.add_shader("res/shaders/skybox.frag", GL_FRAGMENT_SHADER);
+  //Post process
   vignette_eff.add_shader("res/shaders/basic_textured.vert", GL_VERTEX_SHADER);
   vignette_eff.add_shader("res/shaders/vignette.frag", GL_FRAGMENT_SHADER);
-  //Possibly link more basic renders?
+  //Basic shaders for shadow map
   shadow_eff.add_shader("res/shaders/basic_colour.vert", GL_VERTEX_SHADER);
   shadow_eff.add_shader("res/shaders/basic_colour.frag", GL_FRAGMENT_SHADER);
 
@@ -150,20 +158,21 @@ bool load_content() {
   //Apply textures with Anisotropic filtering and generate mipmaps
   //Wood texture
   textures[0] = texture("res/textures/wood-squares.jpg", true, true);
-  //Marble texture
+  //Stone texture
   textures[1] = texture("res/textures/stone.jpg", true, true);
-  //Metal floor texture
+  //Metal floor textures
   textures[2] = texture("res/textures/158.jpg", true, true);
   textures[3] = texture("res/textures/158_norm.jpg", true, true);
   //Spotlight model texture
   textures[4] = texture("res/textures/rusty-light.jpg", true, true);
   //Bone texture
   textures[5] = texture("res/textures/bone.png");
-  //Brick textures
+  //Pencil textures
   textures[6] = texture("res/textures/Colored_Pencils_002_basecolor.jpg", true, true);
   textures[7] = texture("res/textures/Colored_Pencils_002_normal.jpg");
-  textures[8] = texture("res/textures/Colored_Pencils_002_height.png");
+  textures[8] = texture("res/textures/Colored_Pencils_002_depth.png");
 
+  //Skybox textures
   array<string, 6> filenames = { "res/textures/miramar_ft.png", "res/textures/miramar_bk.png", "res/textures/miramar_up.png",
                                 "res/textures/miramar_dn.png", "res/textures/miramar_rt.png", "res/textures/miramar_lf.png" };
   cube_map = cubemap(filenames);
@@ -202,13 +211,13 @@ bool update(float delta_time) {
   // Use keyboard to move thefree_camera - WSAD
   vec3 movement = vec3(0, 0, 0);
   if (glfwGetKey(renderer::get_window(), 'W'))
-    movement.z += 0.5;
+    movement.z += 0.75;
   if (glfwGetKey(renderer::get_window(), 'S'))
-    movement.z -= 0.5;
+    movement.z -= 0.75;
   if (glfwGetKey(renderer::get_window(), 'A'))
-    movement.x -= 0.5;
+    movement.x -= 0.75;
   if (glfwGetKey(renderer::get_window(), 'D'))
-    movement.x += 0.5;
+    movement.x += 0.75;
 
   //Target camera positioning
   if (glfwGetKey(renderer::get_window(), '1')) {
@@ -247,12 +256,14 @@ bool update(float delta_time) {
   meshes["warp_stone"].get_transform().rotate(vec3(quarter_pi<float>(), quarter_pi<float>(), 0.0f) * delta_time);
   //Rotate amethyst stone
   meshes["amethyst"].get_transform().rotate(vec3(0, half_pi<float>(), 0.0f) * delta_time);
-  meshes["dissolve_stone"].get_transform().rotate(vec3(0.0, half_pi<float>(), 0.0) * delta_time);
-  //Change colour diffuse of skeleton, wave range 0 to 1
+  meshes["normal_stone"].get_transform().rotate(vec3(0.0, half_pi<float>(), 0.0) * delta_time);
+  //Change colour diffuse of skeleton, function in range 0 to 1
   meshes["skeleton"].get_material().set_diffuse(vec4(0.5 * sinf(4 * run_time) + 0.5,
                                                      0.5 * cosf(5 * run_time) + 0.5,
                                                      0.5 * sinf(1.25 * run_time) + 0.5, 1));
+  //Slow rotate parallax_stone
   meshes["parallax_stone"].get_transform().rotate(vec3(0.0, quarter_pi<float>(), 0.0) * delta_time);
+
   // Update the main camera
   if (is_free) {
     // Move free_cam
@@ -274,9 +285,9 @@ bool update(float delta_time) {
 }
 
 bool render() {
-  camera* cam_ref;
-  //Optimization for using target cam
   mat4 M, V, P, MVP;
+  //Camera pointer to reduce conditionals
+  camera* cam_ref;
   if (!is_free)
     cam_ref = &target_cam;
   else
@@ -301,10 +312,7 @@ bool render() {
       auto V = shadows[i].get_view();
       auto MVP = LightProjectionMat * V * M;
       // Set MVP matrix uniform
-      glUniformMatrix4fv(shadow_eff.get_uniform_location("MVP"), // Location of uniform
-        1,                                      // Number of values - 1 mat4
-        GL_FALSE,                               // Transpose the matrix?
-        value_ptr(MVP));                        // Pointer to matrix data
+      glUniformMatrix4fv(shadow_eff.get_uniform_location("MVP"), 1, GL_FALSE, value_ptr(MVP));                        
       // Render mesh
       renderer::render(m);
     }
@@ -367,7 +375,7 @@ bool render() {
     bool normal_b = false;
     if (e.first == "warp_stone")
       renderer::bind(textures[0], 0);
-    else if (e.first == "dissolve_stone") {
+    else if (e.first == "normal_stone") {
       renderer::bind(textures[2], 0);
       renderer::bind(textures[3], 7);
       normal_b = true;
