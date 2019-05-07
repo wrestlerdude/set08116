@@ -24,8 +24,10 @@ layout(location = 9) out vec3 transformed_binormal;
 
 void main()
 {
+  //Set position of vertex
   gl_Position = MVP * vec4(position, 1);
   vertex_position = (M * vec4(position, 1)).xyz;
+  //Multiply normal by transform
   transformed_normal = N * normal;
 
   if (env_map) {
@@ -38,6 +40,7 @@ void main()
   for (int i = 0; i < lightMVP.length(); i++)
     vertex_light[i] = lightMVP[i] * vec4(position, 1.0);
 
+    //Transform binormal and tangent
     if (normal_b || parallax) {
       transformed_binormal = N * binormal;
       transformed_tangent = N * tangent;

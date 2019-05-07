@@ -77,8 +77,10 @@ void parallax_occulsion(inout vec3 tex_coord, in vec3 view_dir, sampler2D depth_
 vec3 calc_normal(in vec3 normal, in vec3 tangent, in vec3 binormal, in sampler2D normal_map, in vec2 tex_coord);
 
 void main() {
+  //get view direction
   vec3 view_dir = normalize(eye_pos - position);
   vec3 new_tex_coord;
+  //opengl does not allow varying to be set
   new_tex_coord = tex_coord;
 
   if (parallax)
@@ -90,6 +92,7 @@ void main() {
   else
     tex_colour = texture(tex, new_tex_coord.xy);
 
+  //modify normals
   vec3 mapped_normal;
   if (normal_b || parallax)
     mapped_normal = calc_normal(normal, tangent, binormal, normal_map, new_tex_coord.xy);
@@ -104,7 +107,7 @@ void main() {
   for (int i = 0; i < spots.length(); i++)
     frag_colour += calculate_spot(spots[i], mat, position, mapped_normal, view_dir, tex_colour, ambient_intensity);
   
-  //Must be a more efficient way?
+  //VERY UNOPTIMIZED - Must be a more efficient way?
   float shade;
   for (int i = 0; i < shadow_map.length(); i++) {
     shade = calculate_shadow(shadow_map[i], light_space_pos[i]);
