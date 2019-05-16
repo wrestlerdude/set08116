@@ -25,7 +25,7 @@ bool is_free = true;
 
 bool initialise() {
   //Set resolution to 1600x900
-  renderer::set_screen_dimensions(1920, 1080);
+  renderer::set_screen_dimensions(1600, 900);
   //Capture cursor
   glfwSetInputMode(renderer::get_window(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwGetCursorPos(renderer::get_window(), &cursor_x, &cursor_y);
@@ -211,13 +211,13 @@ bool update(float delta_time) {
   // Use keyboard to move thefree_camera - WSAD
   vec3 movement = vec3(0, 0, 0);
   if (glfwGetKey(renderer::get_window(), 'W'))
-    movement.z += 0.75;
+    movement.z += 0.35;
   if (glfwGetKey(renderer::get_window(), 'S'))
-    movement.z -= 0.75;
+    movement.z -= 0.35;
   if (glfwGetKey(renderer::get_window(), 'A'))
-    movement.x -= 0.75;
+    movement.x -= 0.35;
   if (glfwGetKey(renderer::get_window(), 'D'))
-    movement.x += 0.75;
+    movement.x += 0.35;
 
   //Target camera positioning
   if (glfwGetKey(renderer::get_window(), '1')) {
